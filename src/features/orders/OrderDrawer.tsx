@@ -56,6 +56,7 @@ export function OrderDrawer({ order, onClose }: { order: Order | null; onClose: 
         open
         onClose={onClose}
         wide
+        label={`${t('orders.detailsTitle')} ${order.number}`}
         title={
           <div className="flex flex-wrap items-center gap-3">
             <span className="tnum text-base font-bold text-ink-950">{order.number}</span>

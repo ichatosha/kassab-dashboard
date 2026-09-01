@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n'
 import { useAppState } from '../../store/AppState'
 import { useToast } from '../../components/ui/Toast'
 import { formatNumber } from '../../lib/format'
+import { zoneName } from '../../lib/geo'
 import type { Order } from '../../types/domain'
 
 interface Props {
@@ -67,7 +68,7 @@ export function AssignDriverModal({ order, onClose }: Props) {
               <Avatar name={driver.name} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink-900">{locale === 'ar' ? driver.nameAr : driver.name}</p>
-                <p className="text-xs text-ink-500">{driver.zone}</p>
+                <p className="text-xs text-ink-500">{zoneName(driver.zone, locale)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="tnum text-ink-600">

@@ -8,12 +8,13 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader, Avatar, VehicleBadge } from '../components/ui/misc'
 import { OrderStatusBadge } from '../components/shared/StatusBadges'
 import { formatNumber } from '../lib/format'
+import { cityName, zoneName } from '../lib/geo'
 import type { Driver } from '../types/domain'
 
 // Frontend-only geographic visualization. The <svg> below is the clean
 // integration boundary that a Google Maps component will replace: it
 // receives the same driver/pickup/destination props a real map would.
-function NetworkMap({ drivers, selectedId, onSelect }: { drivers: Driver[]; selectedId: string | null; onSelect: (id: string) => void }) {
+function NetworkMap({ drivers, selectedId, onSelect, regionLabel }: { drivers: Driver[]; selectedId: string | null; onSelect: (id: string) => void; regionLabel: string }) {
   const roadsH = [16, 30, 44, 58, 72, 86]
   const roadsV = [12, 26, 40, 54, 68, 82]
   const selected = drivers.find((d) => d.id === selectedId)
@@ -83,7 +84,7 @@ function NetworkMap({ drivers, selectedId, onSelect }: { drivers: Driver[]; sele
       </svg>
       <span className="absolute start-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink-700 shadow-sm backdrop-blur">
         <Radar className="h-3.5 w-3.5 text-brand-600" aria-hidden />
-        Cairo · Giza
+        {regionLabel}
       </span>
     </div>
   )
@@ -127,7 +128,7 @@ export function TrackingPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <NetworkMap drivers={activeDrivers} selectedId={selectedId} onSelect={setSelectedId} />
+          <NetworkMap drivers={activeDrivers} selectedId={selectedId} onSelect={setSelectedId} regionLabel={`${cityName("Cairo", locale)} · ${cityName("Giza", locale)}`} />
         </div>
 
         <div className="space-y-4">
@@ -197,7 +198,7 @@ export function TrackingPage() {
                       <Avatar name={d.name} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-ink-900">{locale === 'ar' ? d.nameAr : d.name}</span>
-                        <span className="block text-xs text-ink-500">{d.zone}</span>
+                        <span className="block text-xs text-ink-500">{zoneName(d.zone, locale)}</span>
                       </span>
                       <VehicleBadge type={d.vehicle.type} />
                     </button>

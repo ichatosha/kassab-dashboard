@@ -139,3 +139,15 @@ export const mockOrders: Order[] = rows.map(([status, createdMins, driverIdx], i
     timeline: buildTimeline(status, createdMins, driver?.name),
   }
 })
+
+// Reconcile driver load with the orders that reference them, so a driver's
+// active-order count, current order, and activity always match the orders
+// table (demo data must never contradict itself).
+const ACTIVE = new Set<OrderStatus>(['assigned', 'en_route_pickup', 'picked_up', 'en_route_customer'])
+for (const driver of mockDrivers) {
+  const active = mockOrders.filter((o) => o.driverId === driver.id && ACTIVE.has(o.status))
+  driver.activeOrders = active.length
+  driver.currentOrderId = active[0]?.id
+  driver.activity = active.length > 0 ? 'delivering' : 'idle'
+  if (active.length > 0) driver.connection = 'online'
+}

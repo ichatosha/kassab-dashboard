@@ -15,6 +15,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Avatar, Tabs } from '../components/ui/misc'
 import { DriverApprovalBadge, InvoiceStatusBadge, OrderStatusBadge } from '../components/shared/StatusBadges'
 import { formatDateTime, formatMoney, formatNumber, formatPercent } from '../lib/format'
+import { cityName, profileName } from '../lib/geo'
 import type { Branch, Invoice, Order } from '../types/domain'
 
 export function CompanyDetailsPage() {
@@ -84,10 +85,10 @@ export function CompanyDetailsPage() {
               <DriverApprovalBadge status={company.status} />
             </div>
             <p className="tnum mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
-              <span>{company.contactName}</span>
+              <span>{locale === "ar" ? company.contactNameAr : company.contactName}</span>
               <span dir="ltr" className="flex items-center gap-1"><Phone className="h-3 w-3" aria-hidden />{company.phone}</span>
-              <span>{company.city}</span>
-              <span>{company.pricingProfile}</span>
+              <span>{cityName(company.city, locale)}</span>
+              <span>{profileName(company.pricingProfile, locale)}</span>
             </p>
           </div>
           {company.status === 'pending_review' || company.status === 'suspended' ? (
@@ -129,10 +130,10 @@ export function CompanyDetailsPage() {
             <Card title={t('companies.overview')}>
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between"><dt className="text-ink-500">{t('companies.type')}</dt><dd><Badge tone="info">{t(`biz.${company.type}` as TranslationKey)}</Badge></dd></div>
-                <div className="flex justify-between"><dt className="text-ink-500">{t('companies.pricingProfile')}</dt><dd className="font-medium">{company.pricingProfile}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-500">{t('companies.pricingProfile')}</dt><dd className="font-medium">{profileName(company.pricingProfile, locale)}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-500">{t('companies.deliveryPrice')}</dt><dd className="tnum font-medium">{formatMoney(company.deliveryPrice, locale)} {t('common.perOrder')}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-500">{t('companies.branches')}</dt><dd className="tnum font-medium">{formatNumber(companyBranches.length, locale)}</dd></div>
-                <div className="flex justify-between"><dt className="text-ink-500">Email</dt><dd className="font-medium" dir="ltr">{company.email}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-500">{t('auth.email')}</dt><dd className="font-medium" dir="ltr">{company.email}</dd></div>
               </dl>
             </Card>
             <Card title={t('ratings.recent')}>

@@ -33,6 +33,10 @@ interface DriverSeed {
   y: number
 }
 
+// Monthly earnings scale factor keeps driver payouts consistent with the
+// network's ~74 orders/day revenue series (see mocks/finance.ts).
+const EARNINGS_SCALE = 0.4
+
 const seeds: DriverSeed[] = [
   { name: 'Mahmoud El-Sayed', nameAr: 'محمود السيد', zone: 'Nasr City', city: 'Cairo', vehicle: 'motorcycle', model: 'Honda CG 150', plate: 'ق ص م 4821', online: true, delivering: true, rating: 4.8, completed: 1243, earnings: 9840, x: 62, y: 38 },
   { name: 'Ahmed Abdel-Rahman', nameAr: 'أحمد عبدالرحمن', zone: 'Maadi', city: 'Cairo', vehicle: 'motorcycle', model: 'Bajaj Boxer', plate: 'س د ر 7302', online: true, delivering: true, rating: 4.6, completed: 987, earnings: 8420, x: 48, y: 71 },
@@ -89,8 +93,8 @@ export const mockDrivers: Driver[] = seeds.map((s, i) => {
     walletNumber: `010${(11223344 + i * 4321).toString().slice(0, 8)}`,
     activeOrders: s.delivering ? 1 : 0,
     completedOrders: s.completed,
-    earningsMonth: s.earnings,
-    balance: pending ? 0 : Math.round(s.earnings * 0.31),
+    earningsMonth: Math.round(s.earnings * EARNINGS_SCALE),
+    balance: pending ? 0 : Math.round(s.earnings * EARNINGS_SCALE * 0.31),
     registeredAt: daysAgo(pending ? 2 + i * 0.5 : 90 + i * 11),
     documents: docs(pending ? 2 : 90 + i * 11, pending ? 'pending' : 'approved'),
     position: { x: s.x, y: s.y, heading: (i * 47) % 360 },

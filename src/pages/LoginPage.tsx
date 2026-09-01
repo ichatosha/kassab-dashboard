@@ -53,7 +53,9 @@ export function LoginPage() {
           <p className="text-3xl font-bold leading-snug text-white">{t('brand.slogan')}</p>
           <p className="mt-3 text-sm leading-relaxed text-ink-300">{t('auth.subtitle')}</p>
         </div>
-        <p className="relative text-xs text-ink-400">{t('brand.descriptor')} — Kassab Logistics Services</p>
+        <p className="relative text-xs text-ink-400">
+          Kassab Logistics Services · Designed &amp; Developed by BrandMe Agency [HΣ]
+        </p>
       </div>
 
       {/* Form panel */}
@@ -112,6 +114,9 @@ export function LoginPage() {
               </div>
             </dl>
           </div>
+          <p className="mt-6 text-center text-[11px] text-ink-400 lg:hidden" dir="ltr">
+            Designed &amp; Developed by BrandMe Agency [HΣ]
+          </p>
         </div>
       </div>
     </div>

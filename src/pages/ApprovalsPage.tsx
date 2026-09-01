@@ -9,6 +9,7 @@ import { Avatar, PageHeader, VehicleBadge } from '../components/ui/misc'
 import { DriverActions } from '../features/drivers/DriverActions'
 import { DocumentReview } from '../features/drivers/DocumentReview'
 import { formatDate } from '../lib/format'
+import { cityName, zoneName } from '../lib/geo'
 
 export function ApprovalsPage() {
   const { t, locale } = useI18n()
@@ -59,7 +60,7 @@ export function ApprovalsPage() {
                     </Link>
                     <p className="tnum mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-500">
                       <span dir="ltr" className="flex items-center gap-1"><Phone className="h-3 w-3" aria-hidden />{selected.phone}</span>
-                      <span>{selected.zone} · {selected.city}</span>
+                      <span>{zoneName(selected.zone, locale)} · {cityName(selected.city, locale)}</span>
                       <span>{t('approvals.submitted')}: {formatDate(selected.registeredAt, locale)}</span>
                     </p>
                   </div>

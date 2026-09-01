@@ -44,9 +44,15 @@ export function SelectField({ label, error, className = '', children, ...rest }:
           {label}
         </label>
       )}
-      <select id={id} className={`${baseInput} cursor-pointer pe-8`} {...rest}>
+      <select
+        id={id}
+        className={`${baseInput} cursor-pointer pe-8 ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-500/25' : ''}`}
+        aria-invalid={!!error}
+        {...rest}
+      >
         {children}
       </select>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   )
 }

@@ -92,6 +92,7 @@ export interface Company {
   nameAr: string
   type: BusinessType
   contactName: string
+  contactNameAr: string
   phone: string
   email: string
   city: string

@@ -10,9 +10,10 @@ interface DrawerProps {
   children: ReactNode
   footer?: ReactNode
   wide?: boolean
+  label?: string
 }
 
-export function Drawer({ open, onClose, title, children, footer, wide }: DrawerProps) {
+export function Drawer({ open, onClose, title, children, footer, wide, label }: DrawerProps) {
   const { t } = useI18n()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -33,7 +34,7 @@ export function Drawer({ open, onClose, title, children, footer, wide }: DrawerP
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={label}>
       <button
         aria-label={t('common.close')}
         className="absolute inset-0 cursor-default bg-ink-950/40 animate-fade-in"

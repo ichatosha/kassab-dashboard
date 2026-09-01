@@ -2,6 +2,10 @@ import type { Branch, Company, BusinessType } from '../types/domain'
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString()
 
+// Volume scale keeps company/branch order counts consistent with the
+// network's ~74 orders/day revenue series (see mocks/finance.ts).
+const VOLUME_SCALE = 0.25
+
 interface CompanySeed {
   name: string
   nameAr: string
@@ -96,6 +100,21 @@ const seeds: CompanySeed[] = [
   },
 ]
 
+const contactAr: Record<string, string> = {
+  'Hassan Mahmoud': 'حسن محمود',
+  'Dr. Mona Selim': 'د. منى سليم',
+  'Omar El-Shazly': 'عمر الشاذلي',
+  'Dr. Walid Anwar': 'د. وليد أنور',
+  'Nourhan Ashraf': 'نورهان أشرف',
+  'Adel Ghoneim': 'عادل غنيم',
+  'Mostafa Kandil': 'مصطفى قنديل',
+  'Eng. Sameh Fouad': 'م. سامح فؤاد',
+  'Yasmin Tarek': 'ياسمين طارق',
+  'Sheikh Ramadan': 'الشيخ رمضان',
+  'Dr. Amira Loutfy': 'د. أميرة لطفي',
+  'Mohamed Serag': 'محمد سراج',
+}
+
 export const mockBranches: Branch[] = []
 
 export const mockCompanies: Company[] = seeds.map((s, i) => {
@@ -113,8 +132,8 @@ export const mockCompanies: Company[] = seeds.map((s, i) => {
       manager: b.manager,
       phone: `+20 2 2${(4567890 + i * 111 + j * 7).toString().slice(0, 7)}`,
       active: (s.status ?? 'approved') === 'approved',
-      dailyOrders: b.daily,
-      monthlyOrders: b.daily * 26,
+      dailyOrders: b.daily === 0 ? 0 : Math.max(1, Math.round(b.daily * VOLUME_SCALE)),
+      monthlyOrders: b.daily === 0 ? 0 : Math.max(20, Math.round(b.daily * VOLUME_SCALE * 26)),
       successRate: 91 + ((i + j) % 8),
     })
   })
@@ -126,16 +145,17 @@ export const mockCompanies: Company[] = seeds.map((s, i) => {
     nameAr: s.nameAr,
     type: s.type,
     contactName: s.contact,
+    contactNameAr: contactAr[s.contact] ?? s.contact,
     phone: `+20 11${(12345678 + i * 2468).toString().slice(0, 8)}`,
     email: `ops@${s.name.toLowerCase().replace(/[^a-z]+/g, '')}.example`,
     city: s.city,
     status,
     pricingProfile: s.type === 'restaurant' ? 'Restaurant Standard' : s.type === 'pharmacy' ? 'Pharmacy Priority' : 'Corporate Volume',
     deliveryPrice: s.price,
-    activeOrders: status === 'approved' ? 2 + (i % 5) : 0,
-    monthlyOrders: s.monthlyOrders,
-    monthlyRevenue: s.monthlyOrders * s.price,
-    outstandingBalance: s.outstanding,
+    activeOrders: status === 'approved' ? 1 + (i % 3) : 0,
+    monthlyOrders: Math.round(s.monthlyOrders * VOLUME_SCALE),
+    monthlyRevenue: Math.round(s.monthlyOrders * VOLUME_SCALE) * s.price,
+    outstandingBalance: Math.round(s.outstanding * 0.35),
     walletBalance: status === 'approved' ? 4200 + i * 1830 : 0,
     avgDeliveryMins: 32 + (i % 14),
     successRate: 90 + (i % 9),

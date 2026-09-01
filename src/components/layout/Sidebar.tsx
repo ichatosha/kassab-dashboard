@@ -139,6 +139,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             <MapPin className="h-3 w-3" aria-hidden />
             {t('brand.descriptor')}
           </p>
+          <p className="mt-1 text-[10px] text-ink-300" dir="ltr">
+            Designed &amp; Developed by BrandMe Agency [HΣ]
+          </p>
         </div>
       </aside>
     </>

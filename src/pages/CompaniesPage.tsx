@@ -53,7 +53,7 @@ export function CompaniesPage() {
           <Avatar name={c.name} size="sm" />
           <span>
             <span className="block font-medium text-ink-900">{locale === 'ar' ? c.nameAr : c.name}</span>
-            <span className="block text-xs text-ink-400">{c.contactName}</span>
+            <span className="block text-xs text-ink-400">{locale === "ar" ? c.contactNameAr : c.contactName}</span>
           </span>
         </span>
       ),

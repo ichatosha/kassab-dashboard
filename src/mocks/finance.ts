@@ -14,7 +14,7 @@ export const mockRevenueSeries: RevenuePoint[] = Array.from({ length: 30 }, (_, 
   const weekday = new Date(Date.now() - n * 86400000).getDay()
   const weekendDip = weekday === 5 ? 0.82 : weekday === 6 ? 0.9 : 1
   const growth = 1 + (29 - n) * 0.012
-  const orders = Math.round(215 * weekendDip * growth + ((n * 13) % 24))
+  const orders = Math.round(74 * weekendDip * growth + ((n * 7) % 12))
   const revenue = Math.round(orders * 24.4)
   const commission = Math.round(revenue * 0.25)
   return {

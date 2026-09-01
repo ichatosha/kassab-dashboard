@@ -14,6 +14,7 @@ import { ConnectionBadge, DriverApprovalBadge, OrderStatusBadge } from '../compo
 import { DriverActions } from '../features/drivers/DriverActions'
 import { DocumentReview } from '../features/drivers/DocumentReview'
 import { formatDate, formatDateTime, formatMoney, formatNumber, formatPercent } from '../lib/format'
+import { cityName, zoneName } from '../lib/geo'
 import type { Order, WalletTransaction } from '../types/domain'
 
 export function DriverProfilePage() {
@@ -76,7 +77,7 @@ export function DriverProfilePage() {
             <p className="tnum mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500">
               <span dir="ltr" className="flex items-center gap-1"><Phone className="h-3 w-3" aria-hidden />{driver.phone}</span>
               <span dir="ltr">{driver.code}</span>
-              <span>{driver.zone} · {driver.city}</span>
+              <span>{zoneName(driver.zone, locale)} · {cityName(driver.city, locale)}</span>
               <span>{t('drivers.registered')}: {formatDate(driver.registeredAt, locale)}</span>
             </p>
           </div>

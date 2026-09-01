@@ -14,6 +14,7 @@ import { Avatar, PageHeader, Pagination, VehicleBadge } from '../components/ui/m
 import { ConnectionBadge } from '../components/shared/StatusBadges'
 import { usePagination } from '../hooks/usePagination'
 import { formatNumber } from '../lib/format'
+import { zoneName } from '../lib/geo'
 import type { Driver, VehicleType } from '../types/domain'
 
 export function VehiclesPage() {
@@ -54,7 +55,7 @@ export function VehiclesPage() {
       </span>
     ) },
     { key: 'status', header: t('common.status'), render: (d) => <ConnectionBadge driver={d} /> },
-    { key: 'zone', header: t('common.zone'), render: (d) => <span className="text-ink-600">{d.zone}</span> },
+    { key: 'zone', header: t('common.zone'), render: (d) => <span className="text-ink-600">{zoneName(d.zone, locale)}</span> },
   ]
 
   return (

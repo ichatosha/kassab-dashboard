@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { PageHeader, Tabs, VehicleBadge } from '../components/ui/misc'
 import { formatMoney } from '../lib/format'
+import { profileName } from '../lib/geo'
 
 const inputCls =
   'tnum h-8 w-24 rounded-md border border-ink-200 bg-white px-2 text-sm text-ink-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/25'
@@ -80,7 +81,7 @@ export function PricingPage() {
                     <tr key={c.id} className="border-b border-ink-100 last:border-b-0">
                       <td className="px-4 py-2.5 font-medium text-ink-900">{locale === 'ar' ? c.nameAr : c.name}</td>
                       <td className="px-4 py-2.5"><Badge tone="info">{t(`biz.${c.type}` as TranslationKey)}</Badge></td>
-                      <td className="px-4 py-2.5 text-ink-600">{c.pricingProfile}</td>
+                      <td className="px-4 py-2.5 text-ink-600">{profileName(c.pricingProfile, locale)}</td>
                       <td className="px-4 py-2.5 text-end">
                         <input
                           type="number"

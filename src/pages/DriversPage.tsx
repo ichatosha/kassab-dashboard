@@ -14,6 +14,7 @@ import { Avatar, PageHeader, Pagination, RatingStars, VehicleBadge } from '../co
 import { ConnectionBadge, DriverApprovalBadge } from '../components/shared/StatusBadges'
 import { usePagination } from '../hooks/usePagination'
 import { formatDate, formatMoney, formatNumber } from '../lib/format'
+import { zoneName } from '../lib/geo'
 import type { Driver, DriverAccountStatus, VehicleType } from '../types/domain'
 
 export function DriversPage() {
@@ -65,7 +66,7 @@ export function DriversPage() {
     { key: 'approval', header: t('drivers.approval'), render: (d) => <DriverApprovalBadge status={d.status} /> },
     { key: 'rating', header: t('common.rating'), render: (d) => <RatingStars value={d.rating} /> },
     { key: 'vehicle', header: t('orders.vehicle'), render: (d) => <VehicleBadge type={d.vehicle.type} /> },
-    { key: 'zone', header: t('common.zone'), render: (d) => <span className="text-ink-600">{d.zone}</span> },
+    { key: 'zone', header: t('common.zone'), render: (d) => <span className="text-ink-600">{zoneName(d.zone, locale)}</span> },
     { key: 'active', header: t('drivers.activeOrders'), align: 'center', render: (d) => <span className="tnum">{formatNumber(d.activeOrders, locale)}</span> },
     { key: 'completed', header: t('drivers.completed'), align: 'end', render: (d) => <span className="tnum">{formatNumber(d.completedOrders, locale)}</span> },
     { key: 'earnings', header: t('drivers.earnings'), align: 'end', render: (d) => <span className="tnum font-medium">{formatMoney(d.earningsMonth, locale)}</span> },
@@ -98,7 +99,7 @@ export function DriversPage() {
           <SelectField label={t('common.zone')} value={zone} onChange={(e) => setZone(e.target.value)} className="w-full sm:w-40">
             <option value="all">{t('common.all')}</option>
             {zones.map((z) => (
-              <option key={z} value={z}>{z}</option>
+              <option key={z} value={z}>{zoneName(z, locale)}</option>
             ))}
           </SelectField>
           {hasFilters && (

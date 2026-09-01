@@ -10,9 +10,10 @@ interface ModalProps {
   children: ReactNode
   footer?: ReactNode
   wide?: boolean
+  label?: string
 }
 
-export function Modal({ open, onClose, title, children, footer, wide }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, wide, label }: ModalProps) {
   const { t } = useI18n()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -33,7 +34,7 @@ export function Modal({ open, onClose, title, children, footer, wide }: ModalPro
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
       <button
         aria-label={t('common.close')}
         className="absolute inset-0 cursor-default bg-ink-950/40 animate-fade-in"
