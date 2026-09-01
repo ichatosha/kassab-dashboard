@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-ink-50 text-ink-950 font-sans text-sm;
+}
+
+html[dir='rtl'] body {
+  @apply font-arabic;
+}
+
+html[dir='rtl'] {
+  --drawer-from: -100%;
+}
+
+/* Numbers stay tabular in data-dense tables */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin scrollbars for panels */
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  @apply bg-ink-200 rounded-full;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Focus visibility */
+:focus-visible {
+  @apply outline-none ring-2 ring-brand-500 ring-offset-1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
