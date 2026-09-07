@@ -8,14 +8,16 @@ import type { TranslationKey } from '../i18n'
 // always paired with a text label (never color alone).
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand' | 'violet'
 
+// Background and text follow the theme through CSS variables; only the
+// ring needs a dark variant, because the -200 shades stay fixed.
 export const toneClasses: Record<Tone, string> = {
   neutral: 'bg-ink-100 text-ink-700 ring-ink-200',
-  info: 'bg-sky-50 text-sky-700 ring-sky-200',
-  success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  warning: 'bg-amber-50 text-amber-800 ring-amber-200',
-  danger: 'bg-red-50 text-red-700 ring-red-200',
-  brand: 'bg-brand-50 text-brand-700 ring-brand-200',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-200',
+  info: 'bg-sky-50 text-sky-700 ring-sky-200 dark:ring-sky-500/25',
+  success: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:ring-emerald-500/25',
+  warning: 'bg-amber-50 text-amber-700 ring-amber-200 dark:ring-amber-500/25',
+  danger: 'bg-red-50 text-red-700 ring-red-200 dark:ring-red-500/25',
+  brand: 'bg-brand-50 text-brand-700 ring-brand-200 dark:ring-brand-500/25',
+  violet: 'bg-violet-50 text-violet-700 ring-violet-200 dark:ring-violet-500/25',
 }
 
 // ── Hiring pipeline ───────────────────────────────────────────────────
@@ -105,12 +107,13 @@ export const invoiceTone: Record<InvoiceStatus, Tone> = {
 export const invoiceKey = (s: InvoiceStatus): TranslationKey =>
   `invStatus.${s}` as TranslationKey
 
-// Chart palette — consistent across every analytics surface
+// Chart palette — consistent across every analytics surface. Grid and axis
+// read from the theme variables so charts stay legible in dark mode.
 export const chartColors = {
   revenue: '#d6242e',
   salary: '#0e7490',
   hires: '#4f46e5',
   payments: '#b45309',
-  grid: '#e5e9f0',
-  axis: '#8593ab',
+  grid: 'var(--chart-grid)',
+  axis: 'var(--chart-axis)',
 }

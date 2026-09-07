@@ -10,7 +10,7 @@ interface CardProps {
 
 export function Card({ children, className = '', title, actions, padded = true }: CardProps) {
   return (
-    <section className={`rounded-xl border border-ink-200/80 bg-white shadow-card ${className}`}>
+    <section className={`rounded-xl border border-ink-200/80 bg-surface shadow-card ${className}`}>
       {(title || actions) && (
         <header className="flex items-center justify-between gap-3 border-b border-ink-100 px-4 py-3">
           {typeof title === 'string' ? (

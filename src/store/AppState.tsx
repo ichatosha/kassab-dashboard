@@ -2,14 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { Dispatch, ReactNode } from 'react'
 import type {
   Application, ApplicationStatus, AppNotification, Company, CompanyPayment,
-  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice, Rating,
-  RevenuePoint, SalaryRecord, WalletTransaction, WorkforceRequest,
-  WorkforceRequestStatus,
+  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice,
+  OpportunityEngagement, Rating, RevenuePoint, SalaryRecord, WalletTransaction,
+  WorkforceRequest, WorkforceRequestStatus,
 } from '../types/domain'
 import {
-  applicationsService, companiesService, driversService, invoicesService,
-  notificationsService, opportunitiesService, paymentsService, ratingsService,
-  reportsService, salariesService, walletService,
+  applicationsService, companiesService, driversService, engagementService,
+  invoicesService, notificationsService, opportunitiesService, paymentsService,
+  ratingsService, reportsService, salariesService, walletService,
 } from '../services'
 
 interface AppData {
@@ -25,10 +25,16 @@ interface AppData {
   transactions: WalletTransaction[]
   notifications: AppNotification[]
   ratings: Rating[]
+  engagement: OpportunityEngagement[]
 }
 
 interface AppState extends AppData {
   status: 'loading' | 'ready' | 'error'
+  // What this visitor has already done, so a view is counted once and the
+  // like/save buttons can show their own state.
+  viewedOpportunities: string[]
+  likedOpportunities: string[]
+  savedOpportunities: string[]
 }
 
 export interface NewApplicationInput {
@@ -52,12 +58,16 @@ type Action =
   | { type: 'markPayoutPaid'; payoutId: string }
   | { type: 'markNotificationRead'; id: string }
   | { type: 'markAllNotificationsRead' }
+  | { type: 'viewOpportunity'; requestId: string }
+  | { type: 'toggleOpportunityLike'; requestId: string }
+  | { type: 'toggleOpportunitySave'; requestId: string }
 
 const initialState: AppState = {
   status: 'loading',
   drivers: [], companies: [], requests: [], applications: [], salaries: [],
   payments: [], payouts: [], invoices: [], revenueSeries: [], transactions: [],
-  notifications: [], ratings: [],
+  notifications: [], ratings: [], engagement: [],
+  viewedOpportunities: [], likedOpportunities: [], savedOpportunities: [],
 }
 
 const now = () => new Date().toISOString()
@@ -141,6 +151,28 @@ function releaseHire(state: AppState, application: Application): AppState {
         : c,
     ),
   }
+}
+
+// Engagement counters only ever move by one, on the row for one opportunity.
+function bumpEngagement(
+  engagement: OpportunityEngagement[],
+  requestId: string,
+  change: Partial<Record<keyof Omit<OpportunityEngagement, 'requestId'>, number>>,
+): OpportunityEngagement[] {
+  const exists = engagement.some((e) => e.requestId === requestId)
+  const blank: OpportunityEngagement = { requestId, views: 0, uniqueViewers: 0, likes: 0, saves: 0 }
+  const rows = exists ? engagement : [...engagement, blank]
+  return rows.map((e) =>
+    e.requestId === requestId
+      ? {
+          ...e,
+          views: Math.max(0, e.views + (change.views ?? 0)),
+          uniqueViewers: Math.max(0, e.uniqueViewers + (change.uniqueViewers ?? 0)),
+          likes: Math.max(0, e.likes + (change.likes ?? 0)),
+          saves: Math.max(0, e.saves + (change.saves ?? 0)),
+        }
+      : e,
+  )
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -263,6 +295,39 @@ function reducer(state: AppState, action: Action): AppState {
     case 'markAllNotificationsRead':
       return { ...state, notifications: state.notifications.map((n) => ({ ...n, read: true })) }
 
+    // Opening an opportunity counts once per visitor, so re-opening the
+    // same post from the back button does not inflate the numbers.
+    case 'viewOpportunity': {
+      if (state.viewedOpportunities.includes(action.requestId)) return state
+      return {
+        ...state,
+        viewedOpportunities: [...state.viewedOpportunities, action.requestId],
+        engagement: bumpEngagement(state.engagement, action.requestId, { views: 1, uniqueViewers: 1 }),
+      }
+    }
+
+    case 'toggleOpportunityLike': {
+      const liked = state.likedOpportunities.includes(action.requestId)
+      return {
+        ...state,
+        likedOpportunities: liked
+          ? state.likedOpportunities.filter((id) => id !== action.requestId)
+          : [...state.likedOpportunities, action.requestId],
+        engagement: bumpEngagement(state.engagement, action.requestId, { likes: liked ? -1 : 1 }),
+      }
+    }
+
+    case 'toggleOpportunitySave': {
+      const saved = state.savedOpportunities.includes(action.requestId)
+      return {
+        ...state,
+        savedOpportunities: saved
+          ? state.savedOpportunities.filter((id) => id !== action.requestId)
+          : [...state.savedOpportunities, action.requestId],
+        engagement: bumpEngagement(state.engagement, action.requestId, { saves: saved ? -1 : 1 }),
+      }
+    }
+
     default:
       return state
   }
@@ -284,6 +349,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         const [
           drivers, companies, requests, applications, salaries, payments,
           payouts, invoices, revenueSeries, transactions, notifications, ratings,
+          engagement,
         ] = await Promise.all([
           driversService.list(),
           companiesService.list(),
@@ -297,13 +363,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           walletService.transactions(),
           notificationsService.list(),
           ratingsService.list(),
+          engagementService.list(),
         ])
         if (!cancelled) {
           dispatch({
             type: 'loaded',
             data: {
               drivers, companies, requests, applications, salaries, payments,
-              payouts, invoices, revenueSeries, transactions, notifications, ratings,
+              payouts, invoices, revenueSeries, transactions, notifications,
+              ratings, engagement,
             },
           })
         }

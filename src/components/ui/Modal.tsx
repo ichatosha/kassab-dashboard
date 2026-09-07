@@ -34,17 +34,18 @@ export function Modal({ open, onClose, title, children, footer, wide, label }: M
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
+    // Bottom sheet on phones, centred dialog from sm up
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
       <button
         aria-label={t('common.close')}
-        className="absolute inset-0 cursor-default bg-ink-950/40 animate-fade-in"
+        className="absolute inset-0 cursor-default bg-night-950/40 animate-fade-in"
         onClick={onClose}
         tabIndex={-1}
       />
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative flex max-h-[85vh] w-full flex-col rounded-xl bg-white shadow-pop outline-none animate-slide-up ${
+        className={`relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-surface shadow-pop outline-none animate-slide-up sm:max-h-[85dvh] sm:rounded-xl ${
           wide ? 'max-w-2xl' : 'max-w-md'
         }`}
       >

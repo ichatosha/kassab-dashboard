@@ -70,7 +70,7 @@ export function PerformancePage() {
       ),
     },
     { key: 'completed', header: t('drivers.completedDeliveries'), align: 'end', render: (d) => <span className="tnum">{formatNumber(d.performance.completedDeliveries, locale)}</span> },
-    { key: 'failed', header: t('drivers.failedDeliveries'), align: 'end', render: (d) => <span className="tnum text-red-600">{formatNumber(d.performance.failedDeliveries, locale)}</span> },
+    { key: 'failed', header: t('drivers.failedDeliveries'), align: 'end', render: (d) => <span className="tnum text-red-700">{formatNumber(d.performance.failedDeliveries, locale)}</span> },
     { key: 'experience', header: t('drivers.experience'), align: 'center', render: (d) => <span className="tnum">{formatNumber(d.performance.experienceYears, locale)} {t('common.years')}</span> },
   ]
 

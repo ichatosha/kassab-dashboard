@@ -7,6 +7,8 @@ import { useI18n } from '../i18n'
 import { TextField } from '../components/ui/Field'
 import { Button } from '../components/ui/Button'
 import { KassabMark } from '../components/layout/Logo'
+import { BrandCredit } from '../components/shared/BrandCredit'
+import { ThemeToggle } from '../components/shared/ThemeToggle'
 
 export function LoginPage() {
   const { user, signIn } = useAuth()
@@ -32,7 +34,7 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Brand panel */}
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-ink-950 p-10 lg:flex">
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-night-950 p-10 lg:flex">
         <div
           aria-hidden
           className="absolute inset-0 opacity-[0.07]"
@@ -51,11 +53,9 @@ export function LoginPage() {
         </div>
         <div className="relative max-w-md">
           <p className="text-3xl font-bold leading-snug text-white">{t('brand.slogan')}</p>
-          <p className="mt-3 text-sm leading-relaxed text-ink-300">{t('auth.subtitle')}</p>
+          <p className="mt-3 text-sm leading-relaxed text-night-300">{t('auth.subtitle')}</p>
         </div>
-        <p className="relative text-xs text-ink-400">
-          Kassab Logistics Services · Designed &amp; Developed by BrandMe Agency [HΣ]
-        </p>
+        <BrandCredit className="relative text-xs text-night-400" prefix="Kassab Logistics Services · " />
       </div>
 
       {/* Form panel */}
@@ -66,13 +66,16 @@ export function LoginPage() {
               <KassabMark />
               <span className="text-base font-extrabold text-ink-950">{t('brand.name')}</span>
             </div>
-            <button
-              onClick={toggleLocale}
-              className="ms-auto flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100"
-            >
-              <Languages className="h-4 w-4" aria-hidden />
-              {t('header.language')}
-            </button>
+            <span className="ms-auto flex items-center gap-1">
+              <button
+                onClick={toggleLocale}
+                className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100"
+              >
+                <Languages className="h-4 w-4" aria-hidden />
+                {t('header.language')}
+              </button>
+              <ThemeToggle />
+            </span>
           </div>
           <h1 className="text-xl font-bold text-ink-950">{t('auth.title')}</h1>
           <p className="mt-1 text-sm text-ink-500">{t('auth.subtitle')}</p>
@@ -101,9 +104,9 @@ export function LoginPage() {
             </Button>
           </form>
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">{t('auth.demoHint')}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{t('auth.demoHint')}</p>
             <p className="mt-1 text-xs text-amber-700">{t('auth.demoNote')}</p>
-            <dl className="mt-2 space-y-1 text-xs text-amber-900" dir="ltr">
+            <dl className="mt-2 space-y-1 text-xs text-amber-700" dir="ltr">
               <div className="flex justify-between gap-4">
                 <dt className="font-medium">Email</dt>
                 <dd className="font-mono">{DEMO_EMAIL}</dd>
@@ -114,9 +117,7 @@ export function LoginPage() {
               </div>
             </dl>
           </div>
-          <p className="mt-6 text-center text-[11px] text-ink-400 lg:hidden" dir="ltr">
-            Designed &amp; Developed by BrandMe Agency [HΣ]
-          </p>
+          <BrandCredit className="mt-6 text-center text-[11px] text-ink-400 lg:hidden" />
         </div>
       </div>
     </div>

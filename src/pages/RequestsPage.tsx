@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { ClipboardList, FilterX } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { useAppState } from '../store/AppState'
+import { useAuth } from '../store/auth'
 import { useLookups } from '../hooks/useLookups'
+import { EngagementInline } from '../components/shared/EngagementStats'
 import { useToast } from '../components/ui/Toast'
 import { Card } from '../components/ui/Card'
 import { StatCard } from '../components/ui/StatCard'
@@ -27,6 +29,7 @@ const ALL_STATUSES: WorkforceRequestStatus[] = [
 export function RequestsPage() {
   const { t, locale } = useI18n()
   const { requests, companies, applications, dispatch } = useAppState()
+  const { canViewEngagement } = useAuth()
   const { companyName } = useLookups()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -79,6 +82,14 @@ export function RequestsPage() {
     },
     { key: 'remaining', header: t('wfr.remaining'), align: 'center', render: (r) => <span className="tnum">{formatNumber(Math.max(0, r.driversRequired - r.driversHired), locale)}</span> },
     { key: 'apps', header: t('wfr.applications'), align: 'center', render: (r) => <span className="tnum">{formatNumber(applicationCount(r.id), locale)}</span> },
+    // Audience numbers are restricted — see ENGAGEMENT_ROLES
+    ...(canViewEngagement
+      ? [{
+          key: 'interest',
+          header: t('eng.interest'),
+          render: (r: WorkforceRequest) => <EngagementInline requestId={r.id} />,
+        } as Column<WorkforceRequest>]
+      : []),
     { key: 'status', header: t('common.status'), render: (r) => <RequestBadge status={r.status} /> },
     { key: 'deadline', header: t('wfr.deadline'), render: (r) => <span className="tnum text-xs text-ink-500">{formatDate(r.deadline, locale)}</span> },
     {

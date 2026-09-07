@@ -63,7 +63,7 @@ export function PayoutsPage() {
     { key: 'period', header: t('payments.period'), render: (p) => <span className="text-ink-600">{formatPeriod(p.period, locale)}</span> },
     { key: 'salary', header: t('payouts.salary'), align: 'end', render: (p) => <span className="tnum">{formatMoney(p.salary, locale)}</span> },
     { key: 'bonus', header: t('payouts.bonus'), align: 'end', render: (p) => <span className="tnum text-emerald-700">{p.bonus > 0 ? `+${formatMoney(p.bonus, locale)}` : '—'}</span> },
-    { key: 'deductions', header: t('payouts.deductions'), align: 'end', render: (p) => <span className="tnum text-red-600">{p.deductions > 0 ? `-${formatMoney(p.deductions, locale)}` : '—'}</span> },
+    { key: 'deductions', header: t('payouts.deductions'), align: 'end', render: (p) => <span className="tnum text-red-700">{p.deductions > 0 ? `-${formatMoney(p.deductions, locale)}` : '—'}</span> },
     { key: 'net', header: t('payouts.net'), align: 'end', render: (p) => <span className="tnum font-semibold">{formatMoney(p.net, locale)}</span> },
     { key: 'status', header: t('common.status'), render: (p) => <PayoutBadge status={p.status} /> },
     {

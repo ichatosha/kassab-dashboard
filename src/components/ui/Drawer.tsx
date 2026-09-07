@@ -37,14 +37,14 @@ export function Drawer({ open, onClose, title, children, footer, wide, label }: 
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={label}>
       <button
         aria-label={t('common.close')}
-        className="absolute inset-0 cursor-default bg-ink-950/40 animate-fade-in"
+        className="absolute inset-0 cursor-default bg-night-950/40 animate-fade-in"
         onClick={onClose}
         tabIndex={-1}
       />
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`absolute inset-y-0 end-0 flex w-full flex-col bg-white shadow-drawer outline-none animate-drawer-in ${
+        className={`absolute inset-y-0 end-0 flex w-full flex-col bg-surface shadow-drawer outline-none animate-drawer-in ${
           wide ? 'max-w-2xl' : 'max-w-lg'
         }`}
       >

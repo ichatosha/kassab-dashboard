@@ -107,7 +107,7 @@ export function ApplyModal({ request, onClose }: Props) {
           <div className="mt-2 flex gap-2">
             <Link
               to="/applications"
-              className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+              className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"
             >
               {t('form.viewApplications')}
             </Link>

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Banknote, Bell, Bike, Briefcase, Building2, ClipboardList, Columns3,
@@ -8,6 +9,7 @@ import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { Logo } from './Logo'
+import { BrandCredit } from '../shared/BrandCredit'
 import { useAppState } from '../../store/AppState'
 import { OPEN_REQUEST_STATUSES } from '../../lib/status'
 
@@ -27,6 +29,21 @@ interface NavSection {
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, dir } = useI18n()
   const { applications, requests, drivers, payments } = useAppState()
+
+  // While the mobile drawer is open it owns the screen: Escape closes it and
+  // the page behind it must not scroll.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [open, onClose])
 
   const newApplications = applications.filter((a) => a.status === 'new').length
   const openRequests = requests.filter((r) => OPEN_REQUEST_STATUSES.includes(r.status)).length
@@ -93,12 +110,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <button
           aria-hidden
           tabIndex={-1}
-          className="fixed inset-0 z-30 bg-ink-950/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-night-950/40 lg:hidden"
           onClick={onClose}
         />
       )}
       <aside
-        className={`fixed inset-y-0 start-0 z-40 flex w-60 flex-col border-e border-ink-200 bg-white transition-transform duration-200 lg:!translate-x-0 ${
+        className={`fixed inset-y-0 start-0 z-40 flex w-60 flex-col border-e border-ink-200 bg-surface transition-transform duration-200 lg:!translate-x-0 ${
           open ? 'translate-x-0' : dir === 'rtl' ? 'translate-x-full' : '-translate-x-full'
         }`}
         aria-label="Main navigation"
@@ -142,9 +159,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         </nav>
         <div className="border-t border-ink-100 px-4 py-3">
           <p className="text-[11px] text-ink-400">{t('brand.descriptor')}</p>
-          <p className="mt-1 text-[10px] text-ink-300" dir="ltr">
-            Designed &amp; Developed by BrandMe Agency [HΣ]
-          </p>
+          <BrandCredit className="mt-1 text-[10px] text-ink-300" />
         </div>
       </aside>
     </>

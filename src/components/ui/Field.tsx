@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react
 import { Search } from 'lucide-react'
 
 const baseInput =
-  'h-9 w-full rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-900 placeholder:text-ink-400 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:bg-ink-50 disabled:text-ink-400'
+  'h-9 w-full rounded-lg border border-ink-200 bg-surface px-3 text-sm text-ink-900 placeholder:text-ink-400 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:bg-ink-50 disabled:text-ink-400'
 
 interface LabeledProps {
   label?: string
@@ -22,7 +22,7 @@ export function TextField({ label, error, hint, className = '', ...rest }: Label
       )}
       <input id={id} className={`${baseInput} ${error ? 'border-red-400 focus:border-red-400 focus:ring-red-500/25' : ''}`} aria-invalid={!!error} aria-describedby={error ? `${id}-err` : undefined} {...rest} />
       {error && (
-        <p id={`${id}-err`} className="mt-1 text-xs text-red-600">
+        <p id={`${id}-err`} className="mt-1 text-xs text-red-700">
           {error}
         </p>
       )}
@@ -52,7 +52,7 @@ export function SelectField({ label, error, className = '', children, ...rest }:
       >
         {children}
       </select>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
     </div>
   )
 }
@@ -79,7 +79,7 @@ export function ToggleField({ label, checked, onChange }: { label: string; check
       >
         <span
           aria-hidden
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all duration-200 ${checked ? 'start-[calc(100%-1.375rem)]' : 'start-0.5'}`}
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-surface shadow transition-all duration-200 ${checked ? 'start-[calc(100%-1.375rem)]' : 'start-0.5'}`}
         />
       </button>
     </label>

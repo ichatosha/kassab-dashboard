@@ -81,7 +81,7 @@ export function SalariesPage() {
       align: 'end',
       render: (r) => {
         const pending = r.totalDue - r.paid
-        return <span className={`tnum ${pending > 0 ? 'text-red-600' : 'text-ink-400'}`}>{formatMoney(pending, locale)}</span>
+        return <span className={`tnum ${pending > 0 ? 'text-red-700' : 'text-ink-400'}`}>{formatMoney(pending, locale)}</span>
       },
     },
     { key: 'dueDate', header: t('salaries.dueDate'), render: (r) => <span className="tnum text-xs text-ink-500">{formatDate(r.dueDate, locale)}</span> },
@@ -117,7 +117,7 @@ export function SalariesPage() {
           role="img"
           aria-label={`${t('salaries.salaryTotal')} ${formatMoney(totals.salaryTotal, locale)}, ${t('salaries.kassabFee')} ${formatMoney(totals.fees, locale)}`}
         >
-          <div className="flex flex-1 items-center justify-center bg-ink-700 text-xs font-semibold text-white">
+          <div className="flex flex-1 items-center justify-center bg-night-700 text-xs font-semibold text-white">
             {Math.round(100 - feeShare)}%
           </div>
           <div className="flex items-center justify-center bg-brand-600 text-xs font-semibold text-white" style={{ width: `${feeShare}%` }}>
@@ -125,7 +125,7 @@ export function SalariesPage() {
           </div>
         </div>
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-ink-600">
-          <span className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-ink-700" />{t('salaries.salaryTotal')}</span>
+          <span className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-night-700" />{t('salaries.salaryTotal')}</span>
           <span className="flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-brand-600" />{t('salaries.kassabFee')}</span>
         </div>
       </Card>

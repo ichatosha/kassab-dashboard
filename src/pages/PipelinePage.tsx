@@ -67,14 +67,15 @@ export function PipelinePage() {
         }
       />
 
-      <div className="overflow-x-auto scroll-thin pb-2">
+      {/* Stages scroll sideways on small screens, snapping column by column */}
+      <div className="snap-x snap-mandatory overflow-x-auto scroll-thin pb-2">
         <div className="grid min-w-[62rem] grid-cols-6 gap-3">
           {PIPELINE_STAGES.map((stage) => {
             const items = byStage.get(stage) ?? []
             const isFirst = PIPELINE_STAGES.indexOf(stage) === 0
             const isLast = PIPELINE_STAGES.indexOf(stage) === PIPELINE_STAGES.length - 1
             return (
-              <section key={stage} className="flex flex-col rounded-xl border border-ink-200/80 bg-ink-50/50">
+              <section key={stage} className="flex snap-start flex-col rounded-xl border border-ink-200/80 bg-ink-50/50">
                 <header className="flex items-center justify-between gap-2 border-b border-ink-200/70 px-3 py-2.5">
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${toneClasses[applicationTone[stage]]}`}>
                     {t(applicationKey(stage))}
@@ -89,7 +90,7 @@ export function PipelinePage() {
                     const driver = driverById.get(a.driverId)
                     const request = requestById.get(a.requestId)
                     return (
-                      <article key={a.id} className="rounded-lg border border-ink-200 bg-white p-2.5 shadow-card">
+                      <article key={a.id} className="rounded-lg border border-ink-200 bg-surface p-2.5 shadow-card">
                         <button
                           className="flex w-full cursor-pointer items-center gap-2 text-start"
                           onClick={() => navigate(`/applications?open=${a.id}`)}

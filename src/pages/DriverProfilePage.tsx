@@ -70,7 +70,7 @@ export function DriverProfilePage() {
       header: t('common.total'),
       align: 'end',
       render: (tx) => (
-        <span className={`tnum font-semibold ${tx.amount < 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+        <span className={`tnum font-semibold ${tx.amount < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
           {tx.amount > 0 ? '+' : ''}{formatMoney(tx.amount, locale)}
         </span>
       ),
@@ -146,7 +146,7 @@ export function DriverProfilePage() {
             <Card title={t('drivers.performance')}>
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.completedDeliveries')}</dt><dd className="tnum font-medium text-emerald-700">{formatNumber(perf.completedDeliveries, locale)}</dd></div>
-                <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.failedDeliveries')}</dt><dd className="tnum font-medium text-red-600">{formatNumber(perf.failedDeliveries, locale)}</dd></div>
+                <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.failedDeliveries')}</dt><dd className="tnum font-medium text-red-700">{formatNumber(perf.failedDeliveries, locale)}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.cancelledDeliveries')}</dt><dd className="tnum font-medium text-ink-700">{formatNumber(perf.cancelledDeliveries, locale)}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.successRate')}</dt><dd className="tnum font-medium">{perf.deliverySuccessRate > 0 ? formatPercent(perf.deliverySuccessRate, locale) : '—'}</dd></div>
                 <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.experience')}</dt><dd className="tnum font-medium">{formatNumber(perf.experienceYears, locale)} {t('common.years')}</dd></div>

@@ -29,7 +29,8 @@ brand and model they ride (Honda, Yamaha, Bajaj, SYM, TVS, Other).
 ## Stack
 
 - React 19 + TypeScript + Vite
-- Tailwind CSS 3 (logical properties for true RTL)
+- Tailwind CSS 3 (logical properties for true RTL; light/dark themes share
+  one set of classes through the CSS colour tokens in `src/index.css`)
 - React Router (SPA, Cloudflare `_redirects` included)
 - Recharts (analytics), Lucide (icons)
 - Custom lightweight i18n (English / Arabic, full RTL mirroring)
@@ -41,6 +42,11 @@ brand and model they ride (Honda, Yamaha, Bajaj, SYM, TVS, Other).
   outstanding payments; attention queue, hiring pipeline, supply vs demand
 - **Opportunities** — the driver-facing marketplace with filters, full
   opportunity page, and an Apply Now form prefilled from the driver profile
+- **Audience counters** — every published opportunity tracks views, people
+  reached, likes and saves, with a viewer-to-applicant rate. Anyone browsing
+  can like or save a post; only the **platform owner** and **recruitment
+  admins** see the numbers (`ENGAGEMENT_ROLES` in `src/store/auth.tsx`).
+  Settings has a role preview so the restriction can be demonstrated.
 - **Workforce Requests** — company demand with publish / close actions
 - **Applications & Hiring Pipeline** — table with drawer, plus a six-stage
   kanban; hiring a candidate updates the driver, the request and the company

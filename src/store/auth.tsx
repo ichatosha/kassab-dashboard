@@ -14,10 +14,26 @@ const DEMO_USER: AdminUser = {
   role: 'platform_owner',
 }
 
+export type AdminRole = AdminUser['role']
+
+export const ADMIN_ROLES: AdminRole[] = [
+  'platform_owner', 'recruitment_admin', 'finance_admin', 'support',
+]
+
+// Who may read how many people viewed, liked or saved an opportunity.
+// These are the numbers the platform runs on: the owner sees everything,
+// and the recruitment team needs them to judge which postings are working.
+// Finance and support staff work from the same records without them.
+export const ENGAGEMENT_ROLES: AdminRole[] = ['platform_owner', 'recruitment_admin']
+
 interface AuthContextValue {
   user: AdminUser | null
   signIn: (email: string, password: string) => Promise<boolean>
   signOut: () => void
+  /** Effective role. The demo lets the owner preview the other roles. */
+  role: AdminRole
+  setRole: (role: AdminRole) => void
+  canViewEngagement: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -34,6 +50,9 @@ function readSession(): AdminUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(readSession)
+  // Real RBAC will come from the signed-in account. Until then the demo
+  // account is the owner and can preview what a narrower role would see.
+  const [role, setRole] = useState<AdminRole>(DEMO_USER.role)
 
   const signIn = useCallback(async (email: string, password: string) => {
     await new Promise((r) => setTimeout(r, 600))
@@ -51,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     setUser(null)
+    setRole(DEMO_USER.role)
     try {
       sessionStorage.removeItem(STORAGE_KEY)
     } catch {
@@ -58,7 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const value = useMemo(() => ({ user, signIn, signOut }), [user, signIn, signOut])
+  const value = useMemo(
+    () => ({
+      user,
+      signIn,
+      signOut,
+      role,
+      setRole,
+      canViewEngagement: ENGAGEMENT_ROLES.includes(role),
+    }),
+    [user, signIn, signOut, role],
+  )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

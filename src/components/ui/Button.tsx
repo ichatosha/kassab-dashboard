@@ -4,11 +4,11 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success'
 type Size = 'sm' | 'md'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm',
-  secondary: 'bg-white text-ink-800 ring-1 ring-inset ring-ink-200 hover:bg-ink-50',
+  primary: 'bg-brand-600 text-white hover:bg-brand-800 shadow-sm',
+  secondary: 'bg-surface text-ink-800 ring-1 ring-inset ring-ink-200 hover:bg-ink-50',
   ghost: 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm',
+  danger: 'bg-red-600 text-white hover:bg-red-800 shadow-sm',
+  success: 'bg-emerald-600 text-white hover:bg-emerald-800 shadow-sm',
 }
 
 const sizes: Record<Size, string> = {

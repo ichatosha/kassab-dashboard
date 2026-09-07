@@ -6,12 +6,13 @@
 
 import type {
   Application, AppNotification, Company, CompanyPayment, Driver,
-  DriverPayout, Invoice, Rating, RevenuePoint, SalaryRecord,
-  WalletTransaction, WorkforceRequest,
+  DriverPayout, Invoice, OpportunityEngagement, Rating, RevenuePoint,
+  SalaryRecord, WalletTransaction, WorkforceRequest,
 } from '../types/domain'
 import { mockDrivers } from '../mocks/drivers'
 import { mockCompanies, mockWorkforceRequests } from '../mocks/companies'
 import { mockApplications } from '../mocks/applications'
+import { mockEngagement } from '../mocks/engagement'
 import { mockNotifications } from '../mocks/notifications'
 import { mockRatings } from '../mocks/ratings'
 import {
@@ -33,6 +34,9 @@ export interface OpportunityService {
 }
 export interface ApplicationService {
   list(): Promise<Application[]>
+}
+export interface EngagementService {
+  list(): Promise<OpportunityEngagement[]>
 }
 export interface SalaryService {
   list(): Promise<SalaryRecord[]>
@@ -61,6 +65,7 @@ export const driversService: DriverService = { list: () => simulate(mockDrivers)
 export const companiesService: CompanyService = { list: () => simulate(mockCompanies) }
 export const opportunitiesService: OpportunityService = { list: () => simulate(mockWorkforceRequests) }
 export const applicationsService: ApplicationService = { list: () => simulate(mockApplications) }
+export const engagementService: EngagementService = { list: () => simulate(mockEngagement, 180) }
 export const salariesService: SalaryService = { list: () => simulate(mockSalaryRecords, 220) }
 export const paymentsService: PaymentService = {
   companyPayments: () => simulate(mockPayments, 220),

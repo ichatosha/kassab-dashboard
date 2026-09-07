@@ -25,6 +25,19 @@
     />
   </head>
   <body>
+    <script>
+      // Apply the saved theme before first paint so the page never flashes
+      // the wrong one. The app keeps this class in sync afterwards.
+      (function () {
+        try {
+          var saved = localStorage.getItem('kassab.theme')
+          var dark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {
+          /* storage blocked — default to light */
+        }
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

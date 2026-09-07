@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink-900 shadow-pop animate-slide-up"
+            className="pointer-events-auto flex items-center gap-2 rounded-lg border border-ink-200 bg-surface px-4 py-2.5 text-sm text-ink-900 shadow-pop animate-slide-up"
           >
             {icons[t.kind]}
             {t.message}

@@ -8,6 +8,8 @@ import { useI18n } from '../i18n'
 import type { TranslationKey } from '../i18n'
 import { useAuth } from '../store/auth'
 import { KassabMark } from '../components/layout/Logo'
+import { BrandCredit } from '../components/shared/BrandCredit'
+import { ThemeToggle } from '../components/shared/ThemeToggle'
 import { Avatar } from '../components/ui/misc'
 import { mockCompanies, mockWorkforceRequests } from '../mocks/companies'
 import { mockDrivers } from '../mocks/drivers'
@@ -26,7 +28,7 @@ function OpportunityPreview() {
   const filledPct = (request.driversHired / request.driversRequired) * 100
 
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-pop">
+    <div className="rounded-2xl border border-ink-200 bg-surface p-5 shadow-pop">
       <div className="flex items-start gap-3">
         <Avatar name={company.name} />
         <div className="min-w-0 flex-1">
@@ -105,8 +107,8 @@ export function LandingPage() {
   const brands = mockCompanies.filter((c) => c.status === 'active').slice(0, 6)
 
   return (
-    <div className="min-h-[100dvh] bg-white text-ink-950">
-      <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur">
+    <div className="min-h-[100dvh] bg-surface text-ink-950">
+      <header className="sticky top-0 z-40 border-b border-ink-100 bg-surface/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 lg:px-6">
           <a href="#top" className="flex items-center gap-2.5">
             <KassabMark size={34} />
@@ -120,17 +122,19 @@ export function LandingPage() {
             <a href="#drivers" className="transition-colors hover:text-ink-950">{t('landing.nav.drivers')}</a>
             <a href="#how" className="transition-colors hover:text-ink-950">{t('landing.nav.how')}</a>
           </nav>
-          <div className="ms-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-1 sm:gap-2">
             <button
               onClick={toggleLocale}
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100"
+              aria-label={t('header.language')}
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg p-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 sm:px-2.5"
             >
-              <Languages className="h-4 w-4" aria-hidden />
-              {t('header.language')}
+              <Languages className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden />
+              <span className="hidden sm:inline">{t('header.language')}</span>
             </button>
+            <ThemeToggle />
             <Link
               to={user ? '/dashboard' : '/login'}
-              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 sm:px-4"
+              className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-800 sm:px-4"
             >
               <LayoutDashboard className="hidden h-4 w-4 sm:block" aria-hidden />
               {user ? t('landing.hero.cta') : t('landing.nav.signIn')}
@@ -156,14 +160,14 @@ export function LandingPage() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 to={user ? '/dashboard' : '/login'}
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-700 active:translate-y-px"
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:translate-y-px"
               >
                 {t('landing.hero.cta')}
                 <CtaArrow className="h-4 w-4" aria-hidden />
               </Link>
               <a
                 href="#drivers"
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
               >
                 <Bike className="h-4 w-4" aria-hidden />
                 {t('landing.hero.ctaDriver')}
@@ -208,7 +212,7 @@ export function LandingPage() {
           <p className="mt-2 max-w-xl text-sm text-ink-600">{t('landing.seg.sub')}</p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl bg-sky-50 p-6 ring-1 ring-inset ring-sky-100">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-700 text-white" aria-hidden>
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-800 text-white" aria-hidden>
                 <ClipboardList className="h-5 w-5" />
               </span>
               <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.request')}</h3>
@@ -248,7 +252,7 @@ export function LandingPage() {
                 { icon: <Building2 className="h-5 w-5" aria-hidden />, k: 'nav.salaries' },
                 { icon: <Wallet className="h-5 w-5" aria-hidden />, k: 'nav.invoices' },
               ] as { icon: ReactNode; k: TranslationKey }[]).map((c) => (
-                <div key={c.k} className="rounded-2xl border border-ink-200 bg-white p-5 shadow-card">
+                <div key={c.k} className="rounded-2xl border border-ink-200 bg-surface p-5 shadow-card">
                   <span className="text-brand-600">{c.icon}</span>
                   <p className="mt-3 text-sm font-semibold text-ink-900">{t(c.k)}</p>
                 </div>
@@ -280,7 +284,7 @@ export function LandingPage() {
                   { label: 'landing.facts.langs', value: 'landing.facts.langsV' },
                   { label: 'landing.facts.support', value: 'landing.facts.supportV' },
                 ] as { label: TranslationKey; value: TranslationKey }[]).map((f) => (
-                  <div key={f.label} className="rounded-xl bg-white p-3.5 ring-1 ring-inset ring-ink-100">
+                  <div key={f.label} className="rounded-xl bg-surface p-3.5 ring-1 ring-inset ring-ink-100">
                     <dt className="text-[11px] font-medium text-ink-400">{t(f.label)}</dt>
                     <dd className="mt-0.5 text-sm font-semibold text-ink-900">{t(f.value)}</dd>
                   </div>
@@ -308,7 +312,7 @@ export function LandingPage() {
                 { icon: <Wallet className="h-5 w-5" aria-hidden />, title: 'landing.how.s3', desc: 'landing.how.s3d' },
               ] as { icon: ReactNode; title: TranslationKey; desc: TranslationKey }[]).map((s) => (
                 <li key={s.title} className="rounded-2xl border border-ink-200 p-6">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-ink-950 text-white" aria-hidden>
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-night-950 text-white" aria-hidden>
                     {s.icon}
                   </span>
                   <h3 className="mt-4 text-base font-bold">{t(s.title)}</h3>
@@ -320,13 +324,13 @@ export function LandingPage() {
         </section>
 
         {/* Final CTA */}
-        <section className="bg-brand-700">
+        <section className="bg-brandfx-700">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-16 text-center lg:px-6">
             <h2 className="max-w-2xl text-2xl font-bold tracking-tight text-white md:text-3xl">{t('landing.cta.title')}</h2>
-            <p className="text-sm text-brand-100">{t('landing.cta.sub')}</p>
+            <p className="text-sm text-brandfx-100">{t('landing.cta.sub')}</p>
             <Link
               to={user ? '/dashboard' : '/login'}
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-brand-700 shadow-sm transition-all hover:bg-brand-50 active:translate-y-px"
+              className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-brand-700 shadow-sm transition-all hover:bg-brand-50 active:translate-y-px"
             >
               {t('landing.hero.cta')}
               <CtaArrow className="h-4 w-4" aria-hidden />
@@ -335,7 +339,7 @@ export function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-ink-100 bg-white">
+      <footer className="border-t border-ink-100 bg-surface">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-center sm:flex-row sm:text-start lg:px-6">
           <div className="flex items-center gap-2.5">
             <KassabMark size={28} />
@@ -344,7 +348,7 @@ export function LandingPage() {
               <p className="text-xs text-ink-500">{t('brand.descriptor')}</p>
             </div>
           </div>
-          <p className="text-xs text-ink-400" dir="ltr">{t('landing.footer.credit')}</p>
+          <BrandCredit className="text-xs text-ink-400" />
         </div>
       </footer>
     </div>

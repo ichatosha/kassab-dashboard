@@ -603,7 +603,40 @@ export const en = {
   'landing.cta.title': 'Need delivery drivers this month?',
   'landing.cta.sub': 'Explore the workforce dashboard with the demo account today.',
   'landing.footer.rights': 'Kassab Logistics Services',
-  'landing.footer.credit': 'Designed & Developed by BrandMe Agency [HΣ]',
+
+  // Opportunity audience (restricted)
+  'eng.title': 'Audience & interest',
+  'eng.views': 'Views',
+  'eng.uniqueViewers': 'People reached',
+  'eng.likes': 'Likes',
+  'eng.saves': 'Saves',
+  'eng.applicants': 'applied',
+  'eng.conversion': 'Viewer to applicant',
+  'eng.restricted': 'Visible to the platform owner and recruitment admins only.',
+  'eng.like': 'Like',
+  'eng.liked': 'Liked',
+  'eng.save': 'Save',
+  'eng.saved': 'Saved',
+  'eng.interest': 'Interest',
+
+  // Theme
+  'theme.toDark': 'Switch to dark mode',
+  'theme.toLight': 'Switch to light mode',
+  'theme.label': 'Appearance',
+  'theme.light': 'Light',
+  'theme.dark': 'Dark',
+
+  // Roles
+  'role.platform_owner': 'Platform owner',
+  'role.recruitment_admin': 'Recruitment admin',
+  'role.finance_admin': 'Finance admin',
+  'role.support': 'Support agent',
+  'settings.access': 'Access & visibility',
+  'settings.viewAs': 'Preview the dashboard as',
+  'settings.viewAsHint': 'Demo control. Your account is the platform owner.',
+  'settings.accessNote': 'Opportunity view, like and save counters are visible to the platform owner and recruitment admins only. Finance and support roles see the same opportunities without the audience numbers.',
+  'settings.canSeeEngagement': 'Can see audience counters',
+  'settings.cannotSeeEngagement': 'Audience counters hidden',
 
   // Errors / empty
   'error.title': 'Something went wrong',

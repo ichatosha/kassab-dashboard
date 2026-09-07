@@ -5,7 +5,8 @@ import { useI18n } from '../../i18n'
 import { useAppState } from '../../store/AppState'
 import { useAuth } from '../../store/auth'
 import { formatRelative } from '../../lib/format'
-import { GlobalSearch } from './GlobalSearch'
+import { GlobalSearch, MobileSearch } from './GlobalSearch'
+import { ThemeToggle } from '../shared/ThemeToggle'
 import { Avatar } from '../ui/misc'
 
 function useClickOutside(onOutside: () => void) {
@@ -45,7 +46,9 @@ function NotificationsMenu() {
         )}
       </button>
       {open && (
-        <div className="absolute end-0 top-12 z-30 w-80 rounded-xl border border-ink-200 bg-white shadow-pop animate-slide-up">
+        // Anchored to the bell on desktop; on a phone it spans the screen
+        // instead of overflowing past the edge.
+        <div className="fixed inset-x-3 top-[4.25rem] z-30 rounded-xl border border-ink-200 bg-surface shadow-pop animate-slide-up sm:absolute sm:inset-x-auto sm:end-0 sm:top-12 sm:w-80">
           <header className="flex items-center justify-between border-b border-ink-100 px-4 py-2.5">
             <p className="text-sm font-semibold text-ink-900">{t('nav.notifications')}</p>
             {unread > 0 && (
@@ -118,7 +121,7 @@ function UserMenu() {
         <ChevronDown className="h-3.5 w-3.5 text-ink-400" aria-hidden />
       </button>
       {open && (
-        <div role="menu" className="absolute end-0 top-12 z-30 w-52 rounded-xl border border-ink-200 bg-white py-1.5 shadow-pop animate-slide-up">
+        <div role="menu" className="absolute end-0 top-12 z-30 w-52 rounded-xl border border-ink-200 bg-surface py-1.5 shadow-pop animate-slide-up">
           <p className="border-b border-ink-100 px-3.5 pb-2 pt-1 text-xs text-ink-500">{user.email}</p>
           <button
             role="menuitem"
@@ -132,7 +135,7 @@ function UserMenu() {
           </button>
           <button
             role="menuitem"
-            className="flex w-full cursor-pointer items-center gap-2 px-3.5 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+            className="flex w-full cursor-pointer items-center gap-2 px-3.5 py-2 text-sm text-red-700 transition-colors hover:bg-red-50"
             onClick={() => {
               signOut()
               navigate('/login')
@@ -150,23 +153,27 @@ function UserMenu() {
 export function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { t, toggleLocale } = useI18n()
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-ink-200 bg-white/95 px-4 backdrop-blur lg:px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-1 border-b border-ink-200 bg-surface/95 px-3 backdrop-blur sm:gap-3 sm:px-4 lg:px-6">
       <button
         onClick={onMenuClick}
         aria-label="Menu"
-        className="cursor-pointer rounded-lg p-2 text-ink-500 transition-colors hover:bg-ink-100 lg:hidden"
+        className="shrink-0 cursor-pointer rounded-lg p-2 text-ink-500 transition-colors hover:bg-ink-100 lg:hidden"
       >
         <Menu className="h-5 w-5" aria-hidden />
       </button>
       <GlobalSearch />
       <div className="flex-1" />
+      <MobileSearch />
+      {/* Icon only on phones, where header space is tight */}
       <button
         onClick={toggleLocale}
-        className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
+        aria-label={t('header.language')}
+        className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg p-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900 sm:px-2.5"
       >
-        <Languages className="h-4 w-4" aria-hidden />
-        {t('header.language')}
+        <Languages className="h-5 w-5 sm:h-4 sm:w-4" aria-hidden />
+        <span className="hidden sm:inline">{t('header.language')}</span>
       </button>
+      <ThemeToggle className="shrink-0" />
       <NotificationsMenu />
       <UserMenu />
     </header>

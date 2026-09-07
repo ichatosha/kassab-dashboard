@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, Bike, CalendarClock, Check, Clock, Gift, MapPin, Users,
@@ -6,7 +6,9 @@ import {
 import { useI18n } from '../i18n'
 import type { TranslationKey } from '../i18n'
 import { useAppState } from '../store/AppState'
+import { useAuth } from '../store/auth'
 import { useLookups } from '../hooks/useLookups'
+import { EngagementPanel, InterestActions } from '../components/shared/EngagementStats'
 import { Card } from '../components/ui/Card'
 import { StatCard } from '../components/ui/StatCard'
 import { Button } from '../components/ui/Button'
@@ -22,7 +24,8 @@ import { OPEN_REQUEST_STATUSES } from '../lib/status'
 export function OpportunityDetailsPage() {
   const { id } = useParams()
   const { t, locale, dir } = useI18n()
-  const { requests, companies, applications, drivers } = useAppState()
+  const { requests, companies, applications, drivers, dispatch } = useAppState()
+  const { canViewEngagement } = useAuth()
   const { companyName, contactName } = useLookups()
   const navigate = useNavigate()
   const [applyOpen, setApplyOpen] = useState(false)
@@ -32,6 +35,13 @@ export function OpportunityDetailsPage() {
     () => applications.filter((a) => a.requestId === id),
     [applications, id],
   )
+
+  // Opening the post is what counts as a view — the reducer keeps it to one
+  // per visitor, so coming back to the page does not inflate the number.
+  const published = request && request.status !== 'draft'
+  useEffect(() => {
+    if (id && published) dispatch({ type: 'viewOpportunity', requestId: id })
+  }, [id, published, dispatch])
 
   if (!request) {
     return (
@@ -63,6 +73,7 @@ export function OpportunityDetailsPage() {
         actions={
           <>
             <RequestBadge status={request.status} />
+            <InterestActions requestId={request.id} />
             {isOpen && (
               <Button onClick={() => setApplyOpen(true)}>{t('opp.apply')}</Button>
             )}
@@ -182,6 +193,12 @@ export function OpportunityDetailsPage() {
 
         {/* Company sidebar */}
         <div className="space-y-4">
+          {canViewEngagement && (
+            <Card title={t('eng.title')}>
+              <EngagementPanel requestId={request.id} applicants={candidates.length} />
+            </Card>
+          )}
+
           <Card title={t('opp.aboutCompany')}>
             {company && (
               <>

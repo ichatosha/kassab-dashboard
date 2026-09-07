@@ -88,7 +88,7 @@ export function ApplicationDrawer({ application, onClose }: { application: Appli
             {driver && (
               <Link
                 to={`/drivers/profile/${driver.id}`}
-                className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-white px-3 text-xs font-medium text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
+                className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-surface px-3 text-xs font-medium text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
               >
                 {t('apps.viewProfile')}
               </Link>

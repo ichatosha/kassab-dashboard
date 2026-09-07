@@ -1,8 +1,12 @@
 import { useState } from 'react'
-import { Bike, Info, Save } from 'lucide-react'
+import { Bike, Eye, EyeOff, Info, Save } from 'lucide-react'
 import { useI18n } from '../i18n'
+import type { TranslationKey } from '../i18n'
 import { useAppState } from '../store/AppState'
-import { useAuth } from '../store/auth'
+import { ADMIN_ROLES, useAuth } from '../store/auth'
+import type { AdminRole } from '../store/auth'
+import { useTheme } from '../store/theme'
+import type { Theme } from '../store/theme'
 import { useToast } from '../components/ui/Toast'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -17,7 +21,8 @@ const BRANDS: MotorcycleBrand[] = ['honda', 'yamaha', 'bajaj', 'sym', 'tvs', 'ot
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n()
   const { companies } = useAppState()
-  const { user } = useAuth()
+  const { user, role, setRole, canViewEngagement } = useAuth()
+  const { theme, setTheme } = useTheme()
   const { toast } = useToast()
 
   const [platformName, setPlatformName] = useState('Kassab Logistics Services')
@@ -49,10 +54,16 @@ export function SettingsPage() {
         </Card>
 
         <Card title={t('settings.language')}>
-          <SelectField label={t('settings.langChoice')} value={locale} onChange={(e) => setLocale(e.target.value as 'en' | 'ar')}>
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
-          </SelectField>
+          <div className="space-y-4">
+            <SelectField label={t('settings.langChoice')} value={locale} onChange={(e) => setLocale(e.target.value as 'en' | 'ar')}>
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+            </SelectField>
+            <SelectField label={t('theme.label')} value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
+              <option value="light">{t('theme.light')}</option>
+              <option value="dark">{t('theme.dark')}</option>
+            </SelectField>
+          </div>
         </Card>
 
         <Card title={t('settings.notifications')}>
@@ -84,7 +95,7 @@ export function SettingsPage() {
         </Card>
 
         <Card title={t('settings.motorcycles')}>
-          <p className="mb-3 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          <p className="mb-3 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
             {t('settings.vehicleNote')}
           </p>
@@ -103,6 +114,37 @@ export function SettingsPage() {
             {EGYPT_CITIES.map((c) => (
               <Badge key={c} tone="neutral">{cityName(c, locale)}</Badge>
             ))}
+          </div>
+        </Card>
+
+        <Card title={t('settings.access')} className="lg:col-span-2">
+          <p className="mb-3 flex items-start gap-2 rounded-lg bg-sky-50 px-3 py-2 text-xs leading-relaxed text-sky-700">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t('settings.accessNote')}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <SelectField
+                label={t('settings.viewAs')}
+                value={role}
+                onChange={(e) => setRole(e.target.value as AdminRole)}
+              >
+                {ADMIN_ROLES.map((r) => (
+                  <option key={r} value={r}>{t(`role.${r}` as TranslationKey)}</option>
+                ))}
+              </SelectField>
+              <p className="mt-1.5 text-xs text-ink-500">{t('settings.viewAsHint')}</p>
+            </div>
+            <div className="flex items-end">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${
+                  canViewEngagement ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
+                }`}
+              >
+                {canViewEngagement ? <Eye className="h-4 w-4" aria-hidden /> : <EyeOff className="h-4 w-4" aria-hidden />}
+                {canViewEngagement ? t('settings.canSeeEngagement') : t('settings.cannotSeeEngagement')}
+              </span>
+            </div>
           </div>
         </Card>
 

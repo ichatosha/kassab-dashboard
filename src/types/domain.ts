@@ -141,6 +141,17 @@ export interface WorkforceRequest {
   createdAt: string
 }
 
+// How much attention a published opportunity is drawing. Internal
+// recruitment intelligence — ENGAGEMENT_ROLES in store/auth decides who
+// is allowed to read it.
+export interface OpportunityEngagement {
+  requestId: string
+  views: number
+  uniqueViewers: number
+  likes: number
+  saves: number
+}
+
 export interface Application {
   id: string
   number: string

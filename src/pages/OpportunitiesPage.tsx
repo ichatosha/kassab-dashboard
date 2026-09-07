@@ -4,7 +4,9 @@ import { Bike, Briefcase, Clock, FilterX, MapPin, Users } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { TranslationKey } from '../i18n'
 import { useAppState } from '../store/AppState'
+import { useAuth } from '../store/auth'
 import { useLookups } from '../hooks/useLookups'
+import { EngagementInline } from '../components/shared/EngagementStats'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { SearchInput, SelectField } from '../components/ui/Field'
@@ -19,11 +21,12 @@ import type { EmploymentType, WorkforceRequest } from '../types/domain'
 function OpportunityCard({ request }: { request: WorkforceRequest }) {
   const { t, locale } = useI18n()
   const { companyById, companyName } = useLookups()
+  const { canViewEngagement } = useAuth()
   const company = companyById.get(request.companyId)
   const remaining = Math.max(0, request.driversRequired - request.driversHired)
 
   return (
-    <article className="flex flex-col rounded-xl border border-ink-200/80 bg-white p-4 shadow-card transition-colors hover:border-brand-300">
+    <article className="flex flex-col rounded-xl border border-ink-200/80 bg-surface p-4 shadow-card transition-colors hover:border-brand-300">
       <div className="flex items-start gap-3">
         <Avatar name={company?.name ?? '—'} />
         <div className="min-w-0 flex-1">
@@ -75,9 +78,15 @@ function OpportunityCard({ request }: { request: WorkforceRequest }) {
         </p>
       </div>
 
+      {canViewEngagement && (
+        <div className="mt-3 border-t border-ink-100 pt-2.5">
+          <EngagementInline requestId={request.id} />
+        </div>
+      )}
+
       <Link
         to={`/opportunities/${request.id}`}
-        className="mt-4 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+        className="mt-4 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"
       >
         {t('opp.view')}
       </Link>
