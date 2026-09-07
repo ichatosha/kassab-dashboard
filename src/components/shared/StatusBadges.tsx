@@ -2,39 +2,61 @@ import { Badge } from '../ui/Badge'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import {
-  driverStatusTone, invoiceStatusTone, orderStatusKey, orderStatusTone,
+  applicationKey, applicationTone, driverKey, driverTone, invoiceKey,
+  invoiceTone, paymentKey, paymentTone, payoutKey, payoutTone, requestKey,
+  requestTone,
 } from '../../lib/status'
-import type { Driver, DriverAccountStatus, InvoiceStatus, OrderStatus } from '../../types/domain'
+import type {
+  ApplicationStatus, Company, DriverStatus, InvoiceStatus, PaymentStatus,
+  PayoutStatus, WorkforceRequestStatus,
+} from '../../types/domain'
 
-export function OrderStatusBadge({ status, pulse }: { status: OrderStatus; pulse?: boolean }) {
+export function ApplicationBadge({ status }: { status: ApplicationStatus }) {
   const { t } = useI18n()
-  const active = ['new', 'assigned', 'en_route_pickup', 'picked_up', 'en_route_customer'].includes(status)
+  const live = status === 'new'
   return (
-    <Badge tone={orderStatusTone[status]} dot pulse={pulse ?? active}>
-      {t(orderStatusKey(status))}
+    <Badge tone={applicationTone[status]} dot={live} pulse={live}>
+      {t(applicationKey(status))}
     </Badge>
   )
 }
 
-export function DriverApprovalBadge({ status }: { status: DriverAccountStatus }) {
+export function RequestBadge({ status }: { status: WorkforceRequestStatus }) {
   const { t } = useI18n()
-  return <Badge tone={driverStatusTone[status]}>{t(`driverStatus.${status}` as TranslationKey)}</Badge>
+  const live = status === 'open' || status === 'reviewing'
+  return (
+    <Badge tone={requestTone[status]} dot={live} pulse={live}>
+      {t(requestKey(status))}
+    </Badge>
+  )
 }
 
-export function ConnectionBadge({ driver }: { driver: Driver }) {
+export function DriverBadge({ status }: { status: DriverStatus }) {
   const { t } = useI18n()
-  if (driver.connection === 'online') {
-    const delivering = driver.activity === 'delivering'
-    return (
-      <Badge tone={delivering ? 'violet' : 'success'} dot pulse>
-        {t(delivering ? 'driverStatus.delivering' : 'driverStatus.online')}
-      </Badge>
-    )
-  }
-  return <Badge tone="neutral">{t('driverStatus.offline')}</Badge>
+  return (
+    <Badge tone={driverTone[status]} dot={status === 'available'} pulse={status === 'available'}>
+      {t(driverKey(status))}
+    </Badge>
+  )
 }
 
-export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
+export function CompanyBadge({ status }: { status: Company['status'] }) {
   const { t } = useI18n()
-  return <Badge tone={invoiceStatusTone[status]}>{t(`invoices.status.${status}` as TranslationKey)}</Badge>
+  const tone = status === 'active' ? 'success' : status === 'pending_review' ? 'warning' : 'neutral'
+  return <Badge tone={tone}>{t(`companyStatus.${status}` as TranslationKey)}</Badge>
+}
+
+export function PaymentBadge({ status }: { status: PaymentStatus }) {
+  const { t } = useI18n()
+  return <Badge tone={paymentTone[status]}>{t(paymentKey(status))}</Badge>
+}
+
+export function PayoutBadge({ status }: { status: PayoutStatus }) {
+  const { t } = useI18n()
+  return <Badge tone={payoutTone[status]}>{t(payoutKey(status))}</Badge>
+}
+
+export function InvoiceBadge({ status }: { status: InvoiceStatus }) {
+  const { t } = useI18n()
+  return <Badge tone={invoiceTone[status]}>{t(invoiceKey(status))}</Badge>
 }

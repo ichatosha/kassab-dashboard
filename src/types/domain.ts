@@ -1,88 +1,96 @@
 // ── Kassab domain models ──────────────────────────────────────────────
-// These types mirror the future backend API contracts. Keep them
+// Kassab is a delivery workforce marketplace: companies publish workforce
+// requests, drivers apply, Kassab runs recruitment and settles salaries.
+// These types mirror the future backend API contracts — keep them
 // framework-agnostic: no React types, no UI concerns.
 
-export type VehicleType = 'motorcycle' | 'car' | 'tricycle'
+// The platform has exactly ONE vehicle category: motorcycle.
+// A driver only specifies which motorcycle brand/model he rides.
+export type MotorcycleBrand = 'honda' | 'yamaha' | 'bajaj' | 'sym' | 'tvs' | 'other'
 
-export type DriverAccountStatus = 'pending_review' | 'approved' | 'rejected' | 'suspended'
-export type DriverConnection = 'online' | 'offline'
-export type DriverActivity = 'idle' | 'delivering'
-
-export type CompanyStatus = 'pending_review' | 'approved' | 'rejected' | 'suspended'
-export type BusinessType = 'company' | 'restaurant' | 'pharmacy' | 'retail' | 'ecommerce'
-
-export type OrderStatus =
-  | 'new'
-  | 'assigned'
-  | 'en_route_pickup'
-  | 'picked_up'
-  | 'en_route_customer'
-  | 'delivered'
-  | 'closed'
-  | 'failed'
-  | 'cancelled'
-  | 'address_problem'
-  | 'customer_unavailable'
-
-export type PaymentMethod = 'cash' | 'wallet' | 'bank_transfer' | 'card'
-
-export type DocumentStatus = 'pending' | 'approved' | 'rejected'
-
-export interface DriverDocument {
-  id: string
-  kind: 'personal_photo' | 'national_id' | 'driving_license' | 'vehicle_license'
-  status: DocumentStatus
-  submittedAt: string
-  note?: string
-}
-
-export interface Vehicle {
-  type: VehicleType
+export interface Motorcycle {
+  brand: MotorcycleBrand
   model: string
   plate: string
-  color: string
   year: number
+}
+
+export type DriverStatus = 'available' | 'hired' | 'under_review' | 'suspended'
+
+export type BusinessType = 'company' | 'restaurant' | 'pharmacy' | 'retail' | 'ecommerce'
+
+export type CompanyStatus = 'pending_review' | 'active' | 'suspended'
+
+export type WorkforceRequestStatus =
+  | 'draft'
+  | 'open'
+  | 'reviewing'
+  | 'partially_filled'
+  | 'filled'
+  | 'closed'
+  | 'cancelled'
+
+export type ApplicationStatus =
+  | 'new'
+  | 'under_review'
+  | 'contacted'
+  | 'interview'
+  | 'accepted'
+  | 'hired'
+  | 'rejected'
+  | 'withdrawn'
+
+export type EmploymentType = 'full_time' | 'part_time' | 'shifts'
+
+export type PaymentStatus = 'paid' | 'pending' | 'partially_paid' | 'overdue'
+
+export type PayoutStatus = 'paid' | 'pending' | 'processing'
+
+export type InvoiceStatus = 'paid' | 'due' | 'overdue'
+
+export interface DriverWallet {
+  balance: number
+  totalEarnings: number
+  pendingEarnings: number
+  paidEarnings: number
+}
+
+export interface DriverPerformance {
+  rating: number
+  ratingCount: number
+  deliverySuccessRate: number
+  completedDeliveries: number
+  failedDeliveries: number
+  cancelledDeliveries: number
+  experienceYears: number
+}
+
+export interface DriverEmployment {
+  companyId: string
+  requestId: string
+  salary: number
+  startDate: string
 }
 
 export interface Driver {
   id: string
   code: string
+  // Core profile — deliberately simple: name, age, address, phone, motorcycle
   name: string
   nameAr: string
-  phone: string
-  nationalId: string
-  zone: string
-  city: string
-  status: DriverAccountStatus
-  connection: DriverConnection
-  activity: DriverActivity
-  rating: number
-  ratingCount: number
-  vehicle: Vehicle
-  walletNumber: string
-  activeOrders: number
-  completedOrders: number
-  earningsMonth: number
-  balance: number
-  registeredAt: string
-  documents: DriverDocument[]
-  currentOrderId?: string
-  // Simulated map position (percentage of viewport, replaced by lat/lng later)
-  position: { x: number; y: number; heading: number }
-}
-
-export interface Branch {
-  id: string
-  companyId: string
-  name: string
-  nameAr: string
+  age: number
   address: string
-  manager: string
+  city: string
   phone: string
-  active: boolean
-  dailyOrders: number
-  monthlyOrders: number
-  successRate: number
+  motorcycle: Motorcycle
+  status: DriverStatus
+  verified: boolean
+  performance: DriverPerformance
+  wallet: DriverWallet
+  employment?: DriverEmployment
+  availability: EmploymentType
+  preferredArea: string
+  registeredAt: string
 }
 
 export interface Company {
@@ -91,171 +99,175 @@ export interface Company {
   name: string
   nameAr: string
   type: BusinessType
+  city: string
+  address: string
   contactName: string
   contactNameAr: string
   phone: string
   email: string
-  city: string
   status: CompanyStatus
-  pricingProfile: string
-  deliveryPrice: number
-  activeOrders: number
-  monthlyOrders: number
-  monthlyRevenue: number
-  outstandingBalance: number
-  walletBalance: number
-  avgDeliveryMins: number
-  successRate: number
+  verified: boolean
   registeredAt: string
-  branchIds: string[]
+  // Aggregates derived from workforce requests and hired drivers
+  driversRequired: number
+  driversHired: number
+  monthlyWorkforceCost: number
+  kassabFeeRate: number
 }
 
-export interface OrderTimelineEvent {
-  status: OrderStatus
-  at: string
-  by?: string
-  note?: string
-}
-
-export interface Order {
+export interface WorkforceRequest {
   id: string
   number: string
   companyId: string
-  branchId?: string
-  customerName: string
-  customerPhone: string
-  pickupAddress: string
-  deliveryAddress: string
-  zone: string
-  driverId?: string
-  vehicleType: VehicleType
-  paymentMethod: PaymentMethod
-  orderValue: number
-  deliveryFee: number
-  kassabCommission: number
-  driverCommission: number
-  status: OrderStatus
-  problemReason?: string
-  packages: number
-  weightKg: number
-  notes?: string
+  position: string
+  positionAr: string
+  driversRequired: number
+  driversHired: number
+  salary: number
+  bonuses: number
+  city: string
+  area: string
+  areaAr: string
+  workingHours: string
+  workingHoursAr: string
+  workingDays: string
+  workingDaysAr: string
+  employmentType: EmploymentType
+  experienceYears: number
+  requirementKeys: string[]
+  benefitKeys: string[]
+  deadline: string
+  status: WorkforceRequestStatus
   createdAt: string
-  deliveredAt?: string
-  etaMins?: number
-  timeline: OrderTimelineEvent[]
 }
 
-export type TransactionType =
-  | 'delivery_earning'
-  | 'withdrawal'
-  | 'bonus'
-  | 'adjustment'
-  | 'order_charge'
-  | 'payment'
-  | 'invoice'
+export interface Application {
+  id: string
+  number: string
+  driverId: string
+  requestId: string
+  companyId: string
+  status: ApplicationStatus
+  appliedAt: string
+  updatedAt: string
+  availability: EmploymentType
+  preferredArea: string
+  experienceYears: number
+  note?: string
+  noteAr?: string
+}
+
+export type TransactionType = 'salary' | 'bonus' | 'deduction' | 'withdrawal' | 'adjustment'
 
 export interface WalletTransaction {
   id: string
-  ownerType: 'driver' | 'company'
-  ownerId: string
+  driverId: string
   type: TransactionType
   amount: number
   reference: string
   at: string
 }
 
-export type InvoiceStatus = 'paid' | 'due' | 'overdue'
+// One company's obligation for a billing period
+export interface SalaryRecord {
+  id: string
+  companyId: string
+  period: string
+  driversCount: number
+  salaryTotal: number
+  kassabFee: number
+  totalDue: number
+  paid: number
+  status: PaymentStatus
+  dueDate: string
+}
+
+export interface CompanyPayment {
+  id: string
+  companyId: string
+  period: string
+  driverSalaries: number
+  kassabFees: number
+  total: number
+  status: PaymentStatus
+  dueDate: string
+  paidAt?: string
+}
+
+export interface DriverPayout {
+  id: string
+  driverId: string
+  companyId: string
+  period: string
+  salary: number
+  bonus: number
+  deductions: number
+  net: number
+  status: PayoutStatus
+  paidAt?: string
+}
 
 export interface Invoice {
   id: string
   number: string
   companyId: string
   period: string
-  ordersCount: number
-  amount: number
+  driversCount: number
+  salaries: number
+  kassabFees: number
+  total: number
   status: InvoiceStatus
   issuedAt: string
   dueAt: string
 }
 
 export type NotificationKind =
-  | 'new_order'
-  | 'order_accepted'
-  | 'order_cancelled'
-  | 'order_picked_up'
-  | 'order_delivered'
-  | 'bonus'
-  | 'earnings'
+  | 'new_application'
+  | 'application_reviewed'
+  | 'candidate_accepted'
+  | 'driver_hired'
+  | 'new_workforce_request'
+  | 'new_company'
+  | 'new_driver'
+  | 'payment_received'
+  | 'payment_overdue'
+  | 'invoice_generated'
+  | 'salary_cycle'
   | 'admin_message'
-  | 'driver_approval'
-  | 'company_approval'
 
 export interface AppNotification {
   id: string
   kind: NotificationKind
-  titleKey: string
   body: string
   bodyAr: string
   at: string
   read: boolean
 }
 
-export interface ZonePricing {
-  id: string
-  zone: string
-  zoneAr: string
-  basePrice: number
-  pricePerKm: number
-  active: boolean
-}
-
-export interface VehiclePricing {
-  id: string
-  type: VehicleType
-  basePrice: number
-  perKm: number
-  maxWeightKg: number
-}
-
-export interface AdditionalCharge {
-  id: string
-  nameKey: string
-  amount: number
-  kind: 'fixed' | 'percent'
-  active: boolean
-}
-
-export interface CommissionRule {
-  id: string
-  appliesTo: BusinessType | 'default'
-  kassabPercent: number
-  driverPercent: number
-}
-
 export interface Rating {
   id: string
-  orderId: string
-  companyId: string
   driverId: string
-  commitment: number
+  companyId: string
+  punctuality: number
   behavior: number
-  speed: number
+  deliverySpeed: number
   comment?: string
   commentAr?: string
   at: string
 }
 
+// Monthly financial series for revenue analytics
 export interface RevenuePoint {
-  date: string
-  revenue: number
-  commission: number
-  orders: number
-  driverPayouts: number
+  month: string
+  salaryVolume: number
+  kassabRevenue: number
+  companyPayments: number
+  hires: number
 }
 
 export interface AdminUser {
   id: string
   name: string
   email: string
-  role: 'platform_owner' | 'operations_admin' | 'finance_admin' | 'support'
+  role: 'platform_owner' | 'recruitment_admin' | 'finance_admin' | 'support'
 }

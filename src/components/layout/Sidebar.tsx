@@ -1,20 +1,22 @@
 import { NavLink } from 'react-router-dom'
 import {
-  BadgeCheck, Banknote, Bell, Bike, Building2, ChartColumn, ClipboardList,
-  GitBranch, LayoutDashboard, MapPin, Percent, Radar, Settings, Tags,
-  Users, Wallet, ReceiptText,
+  Banknote, Bell, Bike, Briefcase, Building2, ClipboardList, Columns3,
+  FileText, Gauge, LayoutDashboard, ReceiptText, Settings, Star, TrendingUp,
+  UserCheck, Users, Wallet,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { Logo } from './Logo'
 import { useAppState } from '../../store/AppState'
+import { OPEN_REQUEST_STATUSES } from '../../lib/status'
 
 interface NavItem {
   to: string
   labelKey: TranslationKey
   icon: ReactNode
   badge?: number
+  end?: boolean
 }
 
 interface NavSection {
@@ -24,53 +26,56 @@ interface NavSection {
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, dir } = useI18n()
-  const { drivers, orders } = useAppState()
+  const { applications, requests, drivers, payments } = useAppState()
 
-  const pendingApprovals = drivers.filter((d) => d.status === 'pending_review').length
-  const unassigned = orders.filter((o) => o.status === 'new').length
+  const newApplications = applications.filter((a) => a.status === 'new').length
+  const openRequests = requests.filter((r) => OPEN_REQUEST_STATUSES.includes(r.status)).length
+  const availableDrivers = drivers.filter((d) => d.status === 'available').length
+  const overduePayments = payments.filter((p) => p.status === 'overdue').length
 
   const sections: NavSection[] = [
+    { items: [{ to: '/dashboard', labelKey: 'nav.dashboard', icon: <LayoutDashboard className="h-4 w-4" /> }] },
     {
-      items: [{ to: '/dashboard', labelKey: 'nav.dashboard', icon: <LayoutDashboard className="h-4 w-4" /> }],
-    },
-    {
-      labelKey: 'nav.operations',
+      labelKey: 'nav.workforce',
       items: [
-        { to: '/orders', labelKey: 'nav.orders', icon: <ClipboardList className="h-4 w-4" />, badge: unassigned },
-        { to: '/tracking', labelKey: 'nav.tracking', icon: <Radar className="h-4 w-4" /> },
+        { to: '/opportunities', labelKey: 'nav.opportunities', icon: <Briefcase className="h-4 w-4" />, badge: openRequests },
+        { to: '/requests', labelKey: 'nav.requests', icon: <ClipboardList className="h-4 w-4" /> },
+        { to: '/applications', labelKey: 'nav.applications', icon: <FileText className="h-4 w-4" />, badge: newApplications },
+        { to: '/pipeline', labelKey: 'nav.pipeline', icon: <Columns3 className="h-4 w-4" /> },
       ],
     },
     {
-      labelKey: 'nav.fleet',
+      labelKey: 'nav.drivers',
       items: [
-        { to: '/drivers', labelKey: 'nav.drivers', icon: <Users className="h-4 w-4" /> },
-        { to: '/vehicles', labelKey: 'nav.vehicles', icon: <Bike className="h-4 w-4" /> },
-        { to: '/approvals', labelKey: 'nav.approvals', icon: <BadgeCheck className="h-4 w-4" />, badge: pendingApprovals },
+        { to: '/drivers', labelKey: 'nav.allDrivers', icon: <Users className="h-4 w-4" />, end: true },
+        { to: '/drivers/available', labelKey: 'nav.availableDrivers', icon: <Bike className="h-4 w-4" />, badge: availableDrivers },
+        { to: '/drivers/hired', labelKey: 'nav.hiredDrivers', icon: <UserCheck className="h-4 w-4" /> },
       ],
     },
     {
-      labelKey: 'nav.customers',
+      labelKey: 'nav.companies',
       items: [
-        { to: '/companies', labelKey: 'nav.companies', icon: <Building2 className="h-4 w-4" /> },
-        { to: '/branches', labelKey: 'nav.branches', icon: <GitBranch className="h-4 w-4" /> },
+        { to: '/companies', labelKey: 'nav.allCompanies', icon: <Building2 className="h-4 w-4" />, end: true },
+        { to: '/companies/hiring', labelKey: 'nav.hiringCompanies', icon: <Briefcase className="h-4 w-4" /> },
       ],
     },
     {
       labelKey: 'nav.finance',
       items: [
-        { to: '/finance', labelKey: 'nav.revenue', icon: <Banknote className="h-4 w-4" /> },
-        { to: '/commissions', labelKey: 'nav.commissions', icon: <Percent className="h-4 w-4" /> },
-        { to: '/wallets', labelKey: 'nav.wallets', icon: <Wallet className="h-4 w-4" /> },
+        { to: '/salaries', labelKey: 'nav.salaries', icon: <Banknote className="h-4 w-4" /> },
+        { to: '/payments', labelKey: 'nav.payments', icon: <Wallet className="h-4 w-4" />, badge: overduePayments },
+        { to: '/payouts', labelKey: 'nav.payouts', icon: <Wallet className="h-4 w-4" /> },
         { to: '/invoices', labelKey: 'nav.invoices', icon: <ReceiptText className="h-4 w-4" /> },
+        { to: '/revenue', labelKey: 'nav.revenue', icon: <TrendingUp className="h-4 w-4" /> },
       ],
     },
     {
-      labelKey: 'nav.pricing',
-      items: [{ to: '/pricing', labelKey: 'nav.pricing', icon: <Tags className="h-4 w-4" /> }],
-    },
-    {
-      labelKey: 'nav.analytics',
-      items: [{ to: '/reports', labelKey: 'nav.reports', icon: <ChartColumn className="h-4 w-4" /> }],
+      labelKey: 'nav.performance',
+      items: [
+        { to: '/performance', labelKey: 'nav.driverPerformance', icon: <Gauge className="h-4 w-4" /> },
+        { to: '/ratings', labelKey: 'nav.ratings', icon: <Star className="h-4 w-4" /> },
+        { to: '/reports', labelKey: 'nav.reports', icon: <FileText className="h-4 w-4" /> },
+      ],
     },
     {
       labelKey: 'nav.communication',
@@ -113,6 +118,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  end={item.end}
                   onClick={onClose}
                   className={({ isActive }) =>
                     `mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 ${
@@ -135,10 +141,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           ))}
         </nav>
         <div className="border-t border-ink-100 px-4 py-3">
-          <p className="flex items-center gap-1.5 text-[11px] text-ink-400">
-            <MapPin className="h-3 w-3" aria-hidden />
-            {t('brand.descriptor')}
-          </p>
+          <p className="text-[11px] text-ink-400">{t('brand.descriptor')}</p>
           <p className="mt-1 text-[10px] text-ink-300" dir="ltr">
             Designed &amp; Developed by BrandMe Agency [HΣ]
           </p>

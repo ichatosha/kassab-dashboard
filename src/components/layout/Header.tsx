@@ -72,7 +72,7 @@ function NotificationsMenu() {
                 <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-ink-200' : 'bg-brand-500'}`} />
                 <span className="min-w-0">
                   <span className="block truncate text-xs font-semibold text-ink-800">
-                    {t(n.titleKey as Parameters<typeof t>[0])}
+                    {t(`notifKind.${n.kind}` as Parameters<typeof t>[0])}
                   </span>
                   <span className="line-clamp-2 block text-xs text-ink-500">{locale === 'ar' ? n.bodyAr : n.body}</span>
                   <span className="block pt-0.5 text-[10px] text-ink-400">{formatRelative(n.at, locale)}</span>

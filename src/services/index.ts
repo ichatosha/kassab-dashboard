@@ -1,27 +1,25 @@
 // ── Service layer ─────────────────────────────────────────────────────
 // Components and the app store talk ONLY to these interfaces. Today they
 // resolve from centralized mock data with simulated latency; swapping in
-// a REST/GraphQL implementation later means replacing the factory below
-// without touching UI code.
+// a REST/GraphQL implementation later means replacing the objects at the
+// bottom of this file without touching a single UI component.
 
 import type {
-  AdditionalCharge, AppNotification, Branch, CommissionRule, Company,
-  Driver, Invoice, Order, Rating, RevenuePoint, VehiclePricing,
-  WalletTransaction, ZonePricing,
+  Application, AppNotification, Company, CompanyPayment, Driver,
+  DriverPayout, Invoice, Rating, RevenuePoint, SalaryRecord,
+  WalletTransaction, WorkforceRequest,
 } from '../types/domain'
 import { mockDrivers } from '../mocks/drivers'
-import { mockCompanies, mockBranches } from '../mocks/companies'
-import { mockOrders } from '../mocks/orders'
+import { mockCompanies, mockWorkforceRequests } from '../mocks/companies'
+import { mockApplications } from '../mocks/applications'
 import { mockNotifications } from '../mocks/notifications'
 import { mockRatings } from '../mocks/ratings'
 import {
-  mockAdditionalCharges, mockCommissionRules, mockVehiclePricing, mockZonePricing,
-} from '../mocks/pricing'
-import {
-  mockCompanyTransactions, mockDriverTransactions, mockInvoices, mockRevenueSeries,
+  mockInvoices, mockPayments, mockPayouts, mockRevenueSeries,
+  mockSalaryRecords, mockTransactions,
 } from '../mocks/finance'
 
-const simulate = <T,>(data: T, delay = 350): Promise<T> =>
+const simulate = <T,>(data: T, delay = 320): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(data), delay))
 
 export interface DriverService {
@@ -29,22 +27,28 @@ export interface DriverService {
 }
 export interface CompanyService {
   list(): Promise<Company[]>
-  listBranches(): Promise<Branch[]>
 }
-export interface OrderService {
-  list(): Promise<Order[]>
+export interface OpportunityService {
+  list(): Promise<WorkforceRequest[]>
 }
-export interface PricingService {
-  zones(): Promise<ZonePricing[]>
-  vehicles(): Promise<VehiclePricing[]>
-  charges(): Promise<AdditionalCharge[]>
-  commissionRules(): Promise<CommissionRule[]>
+export interface ApplicationService {
+  list(): Promise<Application[]>
 }
-export interface FinanceService {
+export interface SalaryService {
+  list(): Promise<SalaryRecord[]>
+}
+export interface PaymentService {
+  companyPayments(): Promise<CompanyPayment[]>
+  driverPayouts(): Promise<DriverPayout[]>
+}
+export interface InvoiceService {
+  list(): Promise<Invoice[]>
+}
+export interface ReportService {
   revenueSeries(): Promise<RevenuePoint[]>
-  invoices(): Promise<Invoice[]>
-  driverTransactions(): Promise<WalletTransaction[]>
-  companyTransactions(): Promise<WalletTransaction[]>
+}
+export interface WalletService {
+  transactions(): Promise<WalletTransaction[]>
 }
 export interface NotificationService {
   list(): Promise<AppNotification[]>
@@ -53,31 +57,17 @@ export interface RatingService {
   list(): Promise<Rating[]>
 }
 
-export const driverService: DriverService = {
-  list: () => simulate(mockDrivers),
+export const driversService: DriverService = { list: () => simulate(mockDrivers) }
+export const companiesService: CompanyService = { list: () => simulate(mockCompanies) }
+export const opportunitiesService: OpportunityService = { list: () => simulate(mockWorkforceRequests) }
+export const applicationsService: ApplicationService = { list: () => simulate(mockApplications) }
+export const salariesService: SalaryService = { list: () => simulate(mockSalaryRecords, 220) }
+export const paymentsService: PaymentService = {
+  companyPayments: () => simulate(mockPayments, 220),
+  driverPayouts: () => simulate(mockPayouts, 220),
 }
-export const companyService: CompanyService = {
-  list: () => simulate(mockCompanies),
-  listBranches: () => simulate(mockBranches),
-}
-export const orderService: OrderService = {
-  list: () => simulate(mockOrders),
-}
-export const pricingService: PricingService = {
-  zones: () => simulate(mockZonePricing, 200),
-  vehicles: () => simulate(mockVehiclePricing, 200),
-  charges: () => simulate(mockAdditionalCharges, 200),
-  commissionRules: () => simulate(mockCommissionRules, 200),
-}
-export const financeService: FinanceService = {
-  revenueSeries: () => simulate(mockRevenueSeries, 250),
-  invoices: () => simulate(mockInvoices, 250),
-  driverTransactions: () => simulate(mockDriverTransactions, 250),
-  companyTransactions: () => simulate(mockCompanyTransactions, 250),
-}
-export const notificationService: NotificationService = {
-  list: () => simulate(mockNotifications, 150),
-}
-export const ratingService: RatingService = {
-  list: () => simulate(mockRatings, 150),
-}
+export const invoicesService: InvoiceService = { list: () => simulate(mockInvoices, 220) }
+export const reportsService: ReportService = { revenueSeries: () => simulate(mockRevenueSeries, 200) }
+export const walletService: WalletService = { transactions: () => simulate(mockTransactions, 200) }
+export const notificationsService: NotificationService = { list: () => simulate(mockNotifications, 150) }
+export const ratingsService: RatingService = { list: () => simulate(mockRatings, 150) }

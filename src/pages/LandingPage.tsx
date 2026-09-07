@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowRight, Bike, Building2, Check, ClipboardList, Languages,
-  LayoutDashboard, MapPin, Pill, Radar, Route, Star, UtensilsCrossed, Wallet,
+  ArrowLeft, ArrowRight, Bike, Briefcase, Building2, Check, ClipboardList,
+  Languages, LayoutDashboard, MapPin, Star, UserCheck, Wallet,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useI18n } from '../i18n'
@@ -9,60 +9,67 @@ import type { TranslationKey } from '../i18n'
 import { useAuth } from '../store/auth'
 import { KassabMark } from '../components/layout/Logo'
 import { Avatar } from '../components/ui/misc'
+import { mockCompanies, mockWorkforceRequests } from '../mocks/companies'
+import { mockDrivers } from '../mocks/drivers'
+import { formatMoney, formatNumber } from '../lib/format'
+import { cityName, EGYPT_CITIES } from '../lib/geo'
+import { OPEN_REQUEST_STATUSES } from '../lib/status'
 
-// Compact live-network visualization: the same map language the product's
-// tracking screen uses, rendered as a real component (not a fake screenshot).
-function HeroPreview() {
+// A live snapshot of a real opportunity, built from the same data the
+// product runs on rather than a mocked-up screenshot.
+function OpportunityPreview() {
   const { t, locale } = useI18n()
-  const drivers = [
-    { x: 30, y: 24, h: 40 }, { x: 62, y: 40, h: 160 }, { x: 46, y: 62, h: 250 },
-    { x: 74, y: 20, h: 90 }, { x: 22, y: 52, h: 310 },
-  ]
+  const request = mockWorkforceRequests.find((r) => OPEN_REQUEST_STATUSES.includes(r.status))
+  const company = mockCompanies.find((c) => c.id === request?.companyId)
+  if (!request || !company) return null
+  const remaining = Math.max(0, request.driversRequired - request.driversHired)
+  const filledPct = (request.driversHired / request.driversRequired) * 100
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-pop">
-      <div className="flex items-center justify-between border-b border-ink-100 px-4 py-2.5">
-        <span className="flex items-center gap-2 text-xs font-semibold text-ink-700">
-          <Radar className="h-3.5 w-3.5 text-brand-600" aria-hidden />
-          {t('landing.hero.live')}
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
+    <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-pop">
+      <div className="flex items-start gap-3">
+        <Avatar name={company.name} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-ink-950">
+            {locale === 'ar' ? company.nameAr : company.name}
+          </p>
+          <p className="text-xs text-ink-500">{cityName(company.city, locale)}</p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-dot" />
-          {locale === 'ar' ? 'مباشر' : 'Live'}
+          {t('reqStatus.open')}
         </span>
       </div>
-      <div dir="ltr" className="relative aspect-[16/9] bg-[#eef1f5]">
-        <svg viewBox="0 0 100 56" className="h-full w-full" role="img" aria-label={t('landing.hero.live')}>
-          {[14, 28, 42].map((y) => (
-            <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#fff" strokeWidth="1.4" />
-          ))}
-          {[18, 36, 54, 72, 88].map((x) => (
-            <line key={x} x1={x} y1="0" x2={x} y2="56" stroke="#fff" strokeWidth="1.4" />
-          ))}
-          <path d="M40 0 C 38 14, 44 26, 41 38 C 39 47, 43 52, 41 56" stroke="#bcd7ef" strokeWidth="3" fill="none" opacity="0.8" />
-          <path d="M22 46 L46 30 L74 18" stroke="#d6242e" strokeWidth="0.9" strokeDasharray="2 1.2" fill="none" />
-          <circle cx="22" cy="46" r="1.8" fill="#059669" stroke="#fff" strokeWidth="0.5" />
-          <circle cx="74" cy="18" r="1.8" fill="#d6242e" stroke="#fff" strokeWidth="0.5" />
-          {drivers.map((d, i) => (
-            <g key={i} transform={`translate(${d.x} ${d.y})`}>
-              <circle r="1.9" fill="#394253" stroke="#fff" strokeWidth="0.55">
-                <animate attributeName="opacity" values="1;0.55;1" dur="1.9s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
-              </circle>
-              <g transform={`rotate(${d.h})`}>
-                <path d="M0 -3.2 L1 -1.5 L-1 -1.5 Z" fill="#394253" />
-              </g>
-            </g>
-          ))}
-        </svg>
+
+      <p className="mt-4 text-sm font-semibold text-ink-900">
+        {locale === 'ar' ? request.positionAr : request.position}
+      </p>
+      <p className="tnum mt-1 text-2xl font-bold text-brand-700">
+        {formatMoney(request.salary, locale)}
+        <span className="ms-1.5 text-xs font-medium text-ink-500">{t('common.perMonth')}</span>
+      </p>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-ink-500">{t('opp.progress')}</span>
+          <span className="tnum font-semibold text-ink-800">
+            {formatNumber(request.driversHired, locale)} / {formatNumber(request.driversRequired, locale)}
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-100">
+          <div className="h-full rounded-full bg-brand-500" style={{ width: `${filledPct}%` }} />
+        </div>
       </div>
-      <dl className="grid grid-cols-3 divide-x divide-ink-100 border-t border-ink-100 rtl:divide-x-reverse">
+
+      <dl className="mt-4 grid grid-cols-3 divide-x divide-ink-100 rounded-xl bg-ink-50 py-3 rtl:divide-x-reverse">
         {[
-          { label: 'landing.hero.previewOrders', value: locale === 'ar' ? '٧٤' : '74' },
-          { label: 'landing.hero.previewOnline', value: locale === 'ar' ? '١٠' : '10' },
-          { label: 'landing.hero.previewEta', value: locale === 'ar' ? '٣٦ د' : '36 min' },
+          { label: t('opp.remaining'), value: formatNumber(remaining, locale) },
+          { label: t('wfr.employmentType'), value: t(`emp.${request.employmentType}` as TranslationKey) },
+          { label: t('common.city'), value: cityName(request.city, locale) },
         ].map((s) => (
-          <div key={s.label} className="px-4 py-3 text-center">
-            <dt className="text-[10px] font-medium uppercase tracking-wide text-ink-400">{t(s.label as TranslationKey)}</dt>
-            <dd className="tnum mt-0.5 text-lg font-bold text-ink-950">{s.value}</dd>
+          <div key={s.label} className="px-2 text-center">
+            <dt className="text-[10px] font-medium uppercase tracking-wide text-ink-400">{s.label}</dt>
+            <dd className="tnum mt-0.5 text-xs font-bold text-ink-900">{s.value}</dd>
           </div>
         ))}
       </dl>
@@ -70,14 +77,14 @@ function HeroPreview() {
   )
 }
 
-function FeatureList({ items, icon }: { items: TranslationKey[]; icon?: ReactNode }) {
+function FeatureList({ items }: { items: TranslationKey[] }) {
   const { t } = useI18n()
   return (
     <ul className="space-y-3">
       {items.map((key) => (
         <li key={key} className="flex items-start gap-3">
           <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden>
-            {icon ?? <Check className="h-3 w-3" strokeWidth={3} />}
+            <Check className="h-3 w-3" strokeWidth={3} />
           </span>
           <span className="text-sm text-ink-700">{t(key)}</span>
         </li>
@@ -87,17 +94,18 @@ function FeatureList({ items, icon }: { items: TranslationKey[]; icon?: ReactNod
 }
 
 export function LandingPage() {
-  const { t, dir, toggleLocale } = useI18n()
+  const { t, locale, dir, toggleLocale } = useI18n()
   const { user } = useAuth()
   const CtaArrow = dir === 'rtl' ? ArrowLeft : ArrowRight
 
-  const brands = ['Koshary El Tahrir', 'El Ezaby Pharmacy', 'TechZone Egypt', 'Fresh Market', 'Shawerma House', 'Misr Logistics Co.']
-  const brandsAr = ['كشري التحرير', 'صيدلية العزبي', 'تك زون مصر', 'فريش ماركت', 'بيت الشاورما', 'مصر للوجستيات']
-  const { locale } = useI18n()
+  const verifiedDrivers = mockDrivers.filter((d) => d.status !== 'under_review').length
+  const openPositions = mockWorkforceRequests
+    .filter((r) => OPEN_REQUEST_STATUSES.includes(r.status))
+    .reduce((s, r) => s + Math.max(0, r.driversRequired - r.driversHired), 0)
+  const brands = mockCompanies.filter((c) => c.status === 'active').slice(0, 6)
 
   return (
     <div className="min-h-[100dvh] bg-white text-ink-950">
-      {/* Nav */}
       <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 lg:px-6">
           <a href="#top" className="flex items-center gap-2.5">
@@ -108,7 +116,7 @@ export function LandingPage() {
             </span>
           </a>
           <nav className="hidden items-center gap-5 text-sm font-medium text-ink-600 md:flex">
-            <a href="#business" className="transition-colors hover:text-ink-950">{t('landing.nav.business')}</a>
+            <a href="#companies" className="transition-colors hover:text-ink-950">{t('landing.nav.companies')}</a>
             <a href="#drivers" className="transition-colors hover:text-ink-950">{t('landing.nav.drivers')}</a>
             <a href="#how" className="transition-colors hover:text-ink-950">{t('landing.nav.how')}</a>
           </nav>
@@ -139,7 +147,7 @@ export function LandingPage() {
               <MapPin className="h-3 w-3" aria-hidden />
               {t('landing.hero.pill')}
             </span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight md:text-5xl">
               {t('landing.hero.title1')}
               <br />
               <span className="text-brand-600">{t('landing.hero.title2')}</span>
@@ -161,58 +169,70 @@ export function LandingPage() {
                 {t('landing.hero.ctaDriver')}
               </a>
             </div>
+            <dl className="mt-8 grid max-w-md grid-cols-3 gap-4">
+              {[
+                { label: t('landing.hero.statDrivers'), value: formatNumber(verifiedDrivers, locale) },
+                { label: t('landing.hero.statOpen'), value: formatNumber(openPositions, locale) },
+                { label: t('landing.hero.statCities'), value: formatNumber(EGYPT_CITIES.length, locale) },
+              ].map((s) => (
+                <div key={s.label}>
+                  <dt className="text-[11px] font-medium text-ink-400">{s.label}</dt>
+                  <dd className="tnum mt-0.5 text-xl font-bold text-ink-950">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div className="animate-slide-up">
-            <HeroPreview />
+            <OpportunityPreview />
           </div>
         </section>
 
-        {/* Brands on the network */}
+        {/* Companies on the network */}
         <section className="border-y border-ink-100 bg-ink-50/60">
           <div className="mx-auto max-w-6xl px-4 py-8 lg:px-6">
             <p className="text-center text-xs font-medium text-ink-500">{t('landing.brands')}</p>
             <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-              {brands.map((name, i) => (
-                <li key={name} className="flex items-center gap-2">
-                  <Avatar name={name} size="sm" />
-                  <span className="text-sm font-semibold text-ink-700">{locale === 'ar' ? brandsAr[i] : name}</span>
+              {brands.map((c) => (
+                <li key={c.id} className="flex items-center gap-2">
+                  <Avatar name={c.name} size="sm" />
+                  <span className="text-sm font-semibold text-ink-700">{locale === 'ar' ? c.nameAr : c.name}</span>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        {/* Segments */}
+        {/* The three-part promise */}
         <section className="mx-auto max-w-6xl px-4 py-16 lg:px-6" aria-labelledby="seg-title">
           <h2 id="seg-title" className="text-2xl font-bold tracking-tight md:text-3xl">{t('landing.seg.title')}</h2>
           <p className="mt-2 max-w-xl text-sm text-ink-600">{t('landing.seg.sub')}</p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl bg-sky-50 p-6 ring-1 ring-inset ring-sky-100">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-700 text-white" aria-hidden>
+                <ClipboardList className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.request')}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.requestDesc')}</p>
+            </div>
             <div className="rounded-2xl bg-emerald-50 p-6 ring-1 ring-inset ring-emerald-100">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white" aria-hidden>
-                <Pill className="h-5 w-5" />
+                <UserCheck className="h-5 w-5" />
               </span>
-              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.pharmacy')}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.pharmacyDesc')}</p>
+              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.review')}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.reviewDesc')}</p>
             </div>
             <div className="rounded-2xl bg-amber-50 p-6 ring-1 ring-inset ring-amber-100">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-600 text-white" aria-hidden>
-                <UtensilsCrossed className="h-5 w-5" />
+                <Wallet className="h-5 w-5" />
               </span>
-              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.restaurant')}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.restaurantDesc')}</p>
-            </div>
-            <div className="rounded-2xl bg-sky-50 p-6 ring-1 ring-inset ring-sky-100">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-700 text-white" aria-hidden>
-                <Building2 className="h-5 w-5" />
-              </span>
-              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.company')}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.companyDesc')}</p>
+              <h3 className="mt-4 text-base font-bold text-ink-950">{t('landing.seg.settle')}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t('landing.seg.settleDesc')}</p>
             </div>
           </div>
         </section>
 
-        {/* For businesses */}
-        <section id="business" className="border-t border-ink-100 bg-ink-50/40 scroll-mt-16">
+        {/* For companies */}
+        <section id="companies" className="scroll-mt-16 border-t border-ink-100 bg-ink-50/40">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:px-6">
             <div>
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{t('landing.biz.title')}</h2>
@@ -222,15 +242,15 @@ export function LandingPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: <ClipboardList className="h-5 w-5" aria-hidden />, k: 'landing.how.s1' },
-                { icon: <Route className="h-5 w-5" aria-hidden />, k: 'landing.how.s2' },
-                { icon: <Radar className="h-5 w-5" aria-hidden />, k: 'landing.how.s3' },
-                { icon: <Wallet className="h-5 w-5" aria-hidden />, k: 'landing.biz.f5' },
-              ].map((c) => (
+              {([
+                { icon: <ClipboardList className="h-5 w-5" aria-hidden />, k: 'nav.requests' },
+                { icon: <Briefcase className="h-5 w-5" aria-hidden />, k: 'nav.pipeline' },
+                { icon: <Building2 className="h-5 w-5" aria-hidden />, k: 'nav.salaries' },
+                { icon: <Wallet className="h-5 w-5" aria-hidden />, k: 'nav.invoices' },
+              ] as { icon: ReactNode; k: TranslationKey }[]).map((c) => (
                 <div key={c.k} className="rounded-2xl border border-ink-200 bg-white p-5 shadow-card">
                   <span className="text-brand-600">{c.icon}</span>
-                  <p className="mt-3 text-sm font-semibold text-ink-900">{t(c.k as TranslationKey)}</p>
+                  <p className="mt-3 text-sm font-semibold text-ink-900">{t(c.k)}</p>
                 </div>
               ))}
             </div>
@@ -238,7 +258,7 @@ export function LandingPage() {
         </section>
 
         {/* For drivers */}
-        <section id="drivers" className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:px-6 scroll-mt-16">
+        <section id="drivers" className="mx-auto grid max-w-6xl scroll-mt-16 items-center gap-10 px-4 py-16 lg:grid-cols-2 lg:px-6">
           <div className="order-2 lg:order-1">
             <div className="rounded-2xl bg-brand-50 p-6 ring-1 ring-inset ring-brand-100">
               <div className="flex items-center gap-3">
@@ -254,15 +274,15 @@ export function LandingPage() {
                 </div>
               </div>
               <dl className="mt-5 grid grid-cols-2 gap-3">
-                {[
+                {([
                   { label: 'landing.facts.coverage', value: 'landing.facts.coverageV' },
-                  { label: 'landing.facts.vehicles', value: 'landing.facts.vehiclesV' },
+                  { label: 'landing.facts.fleet', value: 'landing.facts.fleetV' },
                   { label: 'landing.facts.langs', value: 'landing.facts.langsV' },
                   { label: 'landing.facts.support', value: 'landing.facts.supportV' },
-                ].map((f) => (
+                ] as { label: TranslationKey; value: TranslationKey }[]).map((f) => (
                   <div key={f.label} className="rounded-xl bg-white p-3.5 ring-1 ring-inset ring-ink-100">
-                    <dt className="text-[11px] font-medium text-ink-400">{t(f.label as TranslationKey)}</dt>
-                    <dd className="mt-0.5 text-sm font-semibold text-ink-900">{t(f.value as TranslationKey)}</dd>
+                    <dt className="text-[11px] font-medium text-ink-400">{t(f.label)}</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-ink-900">{t(f.value)}</dd>
                   </div>
                 ))}
               </dl>
@@ -278,28 +298,28 @@ export function LandingPage() {
         </section>
 
         {/* How it works */}
-        <section id="how" className="border-t border-ink-100 scroll-mt-16">
+        <section id="how" className="scroll-mt-16 border-t border-ink-100">
           <div className="mx-auto max-w-6xl px-4 py-16 lg:px-6">
             <h2 className="text-center text-2xl font-bold tracking-tight md:text-3xl">{t('landing.how.title')}</h2>
             <ol className="mt-10 grid gap-6 md:grid-cols-3">
-              {[
+              {([
                 { icon: <ClipboardList className="h-5 w-5" aria-hidden />, title: 'landing.how.s1', desc: 'landing.how.s1d' },
-                { icon: <Route className="h-5 w-5" aria-hidden />, title: 'landing.how.s2', desc: 'landing.how.s2d' },
-                { icon: <Radar className="h-5 w-5" aria-hidden />, title: 'landing.how.s3', desc: 'landing.how.s3d' },
-              ].map((s) => (
-                <li key={s.title} className="relative rounded-2xl border border-ink-200 p-6">
+                { icon: <UserCheck className="h-5 w-5" aria-hidden />, title: 'landing.how.s2', desc: 'landing.how.s2d' },
+                { icon: <Wallet className="h-5 w-5" aria-hidden />, title: 'landing.how.s3', desc: 'landing.how.s3d' },
+              ] as { icon: ReactNode; title: TranslationKey; desc: TranslationKey }[]).map((s) => (
+                <li key={s.title} className="rounded-2xl border border-ink-200 p-6">
                   <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-ink-950 text-white" aria-hidden>
                     {s.icon}
                   </span>
-                  <h3 className="mt-4 text-base font-bold">{t(s.title as TranslationKey)}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t(s.desc as TranslationKey)}</p>
+                  <h3 className="mt-4 text-base font-bold">{t(s.title)}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{t(s.desc)}</p>
                 </li>
               ))}
             </ol>
           </div>
         </section>
 
-        {/* Final CTA: single deliberate brand color block */}
+        {/* Final CTA */}
         <section className="bg-brand-700">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-16 text-center lg:px-6">
             <h2 className="max-w-2xl text-2xl font-bold tracking-tight text-white md:text-3xl">{t('landing.cta.title')}</h2>
@@ -315,14 +335,13 @@ export function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-ink-100 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-center sm:flex-row sm:text-start lg:px-6">
           <div className="flex items-center gap-2.5">
             <KassabMark size={28} />
             <div className="leading-tight">
               <p className="text-sm font-bold">{t('landing.footer.rights')}</p>
-              <p className="text-xs text-ink-500">{t('brand.slogan')}</p>
+              <p className="text-xs text-ink-500">{t('brand.descriptor')}</p>
             </div>
           </div>
           <p className="text-xs text-ink-400" dir="ltr">{t('landing.footer.credit')}</p>

@@ -1,13 +1,11 @@
 import type {
-  DriverAccountStatus,
-  InvoiceStatus,
-  OrderStatus,
-  VehicleType,
+  ApplicationStatus, DriverStatus, InvoiceStatus, PaymentStatus,
+  PayoutStatus, WorkforceRequestStatus,
 } from '../types/domain'
 import type { TranslationKey } from '../i18n'
 
 // Badge tone → Tailwind classes. Tones carry semantic meaning and are
-// paired with text labels everywhere (never color alone).
+// always paired with a text label (never color alone).
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger' | 'brand' | 'violet'
 
 export const toneClasses: Record<Tone, string> = {
@@ -20,75 +18,99 @@ export const toneClasses: Record<Tone, string> = {
   violet: 'bg-violet-50 text-violet-700 ring-violet-200',
 }
 
-export const orderStatusTone: Record<OrderStatus, Tone> = {
+// ── Hiring pipeline ───────────────────────────────────────────────────
+export const PIPELINE_STAGES: ApplicationStatus[] = [
+  'new', 'under_review', 'contacted', 'interview', 'accepted', 'hired',
+]
+
+export const ALL_APPLICATION_STATUSES: ApplicationStatus[] = [
+  ...PIPELINE_STAGES, 'rejected', 'withdrawn',
+]
+
+export const applicationTone: Record<ApplicationStatus, Tone> = {
   new: 'brand',
-  assigned: 'info',
-  en_route_pickup: 'info',
-  picked_up: 'violet',
-  en_route_customer: 'violet',
-  delivered: 'success',
-  closed: 'neutral',
-  failed: 'danger',
-  cancelled: 'danger',
-  address_problem: 'warning',
-  customer_unavailable: 'warning',
+  under_review: 'info',
+  contacted: 'info',
+  interview: 'violet',
+  accepted: 'success',
+  hired: 'success',
+  rejected: 'danger',
+  withdrawn: 'neutral',
 }
 
-export const orderStatusKey = (s: OrderStatus): TranslationKey =>
-  `status.${s}` as TranslationKey
+export const applicationKey = (s: ApplicationStatus): TranslationKey =>
+  `appStatus.${s}` as TranslationKey
 
-export const driverStatusTone: Record<DriverAccountStatus, Tone> = {
-  pending_review: 'warning',
-  approved: 'success',
-  rejected: 'danger',
+export const nextStage = (s: ApplicationStatus): ApplicationStatus | null => {
+  const i = PIPELINE_STAGES.indexOf(s)
+  if (i === -1 || i === PIPELINE_STAGES.length - 1) return null
+  return PIPELINE_STAGES[i + 1]
+}
+
+// ── Workforce requests ────────────────────────────────────────────────
+export const requestTone: Record<WorkforceRequestStatus, Tone> = {
+  draft: 'neutral',
+  open: 'success',
+  reviewing: 'info',
+  partially_filled: 'warning',
+  filled: 'brand',
+  closed: 'neutral',
+  cancelled: 'danger',
+}
+
+export const requestKey = (s: WorkforceRequestStatus): TranslationKey =>
+  `reqStatus.${s}` as TranslationKey
+
+export const OPEN_REQUEST_STATUSES: WorkforceRequestStatus[] = [
+  'open', 'reviewing', 'partially_filled',
+]
+
+// ── Drivers ───────────────────────────────────────────────────────────
+export const driverTone: Record<DriverStatus, Tone> = {
+  available: 'success',
+  hired: 'brand',
+  under_review: 'warning',
   suspended: 'neutral',
 }
 
-export const invoiceStatusTone: Record<InvoiceStatus, Tone> = {
+export const driverKey = (s: DriverStatus): TranslationKey =>
+  `driverStatus.${s}` as TranslationKey
+
+// ── Finance ───────────────────────────────────────────────────────────
+export const paymentTone: Record<PaymentStatus, Tone> = {
+  paid: 'success',
+  pending: 'warning',
+  partially_paid: 'info',
+  overdue: 'danger',
+}
+
+export const paymentKey = (s: PaymentStatus): TranslationKey =>
+  `payStatus.${s}` as TranslationKey
+
+export const payoutTone: Record<PayoutStatus, Tone> = {
+  paid: 'success',
+  pending: 'warning',
+  processing: 'info',
+}
+
+export const payoutKey = (s: PayoutStatus): TranslationKey =>
+  `payoutStatus.${s}` as TranslationKey
+
+export const invoiceTone: Record<InvoiceStatus, Tone> = {
   paid: 'success',
   due: 'warning',
   overdue: 'danger',
 }
 
-export const PROBLEM_STATUSES: OrderStatus[] = [
-  'failed',
-  'cancelled',
-  'address_problem',
-  'customer_unavailable',
-]
+export const invoiceKey = (s: InvoiceStatus): TranslationKey =>
+  `invStatus.${s}` as TranslationKey
 
-export const ACTIVE_STATUSES: OrderStatus[] = [
-  'new',
-  'assigned',
-  'en_route_pickup',
-  'picked_up',
-  'en_route_customer',
-]
-
-export const LIFECYCLE: OrderStatus[] = [
-  'new',
-  'assigned',
-  'en_route_pickup',
-  'picked_up',
-  'en_route_customer',
-  'delivered',
-  'closed',
-]
-
-export const nextStatus = (s: OrderStatus): OrderStatus | null => {
-  const idx = LIFECYCLE.indexOf(s)
-  if (idx === -1 || idx === LIFECYCLE.length - 1) return null
-  return LIFECYCLE[idx + 1]
-}
-
-export const vehicleKey = (v: VehicleType): TranslationKey => `vehicle.${v}` as TranslationKey
-
-// Chart palette — colorblind-aware, consistent across the app
+// Chart palette — consistent across every analytics surface
 export const chartColors = {
   revenue: '#d6242e',
-  commission: '#0e7490',
-  orders: '#4f46e5',
-  payouts: '#b45309',
+  salary: '#0e7490',
+  hires: '#4f46e5',
+  payments: '#b45309',
   grid: '#e5e9f0',
   axis: '#8593ab',
 }

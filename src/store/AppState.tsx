@@ -1,64 +1,147 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
-import type { ReactNode } from 'react'
+import type { Dispatch, ReactNode } from 'react'
 import type {
-  AdditionalCharge, AppNotification, Branch, CommissionRule, Company,
-  Driver, DriverAccountStatus, Invoice, Order, OrderStatus, Rating,
-  RevenuePoint, VehiclePricing, WalletTransaction, ZonePricing,
+  Application, ApplicationStatus, AppNotification, Company, CompanyPayment,
+  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice, Rating,
+  RevenuePoint, SalaryRecord, WalletTransaction, WorkforceRequest,
+  WorkforceRequestStatus,
 } from '../types/domain'
 import {
-  companyService, driverService, financeService, notificationService,
-  orderService, pricingService, ratingService,
+  applicationsService, companiesService, driversService, invoicesService,
+  notificationsService, opportunitiesService, paymentsService, ratingsService,
+  reportsService, salariesService, walletService,
 } from '../services'
-import { nextStatus } from '../lib/status'
 
 interface AppData {
   drivers: Driver[]
   companies: Company[]
-  branches: Branch[]
-  orders: Order[]
+  requests: WorkforceRequest[]
+  applications: Application[]
+  salaries: SalaryRecord[]
+  payments: CompanyPayment[]
+  payouts: DriverPayout[]
+  invoices: Invoice[]
+  revenueSeries: RevenuePoint[]
+  transactions: WalletTransaction[]
   notifications: AppNotification[]
   ratings: Rating[]
-  zonePricing: ZonePricing[]
-  vehiclePricing: VehiclePricing[]
-  charges: AdditionalCharge[]
-  commissionRules: CommissionRule[]
-  revenueSeries: RevenuePoint[]
-  invoices: Invoice[]
-  driverTransactions: WalletTransaction[]
-  companyTransactions: WalletTransaction[]
 }
 
 interface AppState extends AppData {
   status: 'loading' | 'ready' | 'error'
 }
 
+export interface NewApplicationInput {
+  driverId: string
+  requestId: string
+  availability: EmploymentType
+  preferredArea: string
+  experienceYears: number
+  note?: string
+}
+
 type Action =
   | { type: 'loaded'; data: AppData }
   | { type: 'loadError' }
-  | { type: 'setDriverStatus'; driverId: string; status: DriverAccountStatus }
-  | { type: 'assignDriver'; orderId: string; driverId: string }
-  | { type: 'cancelAssignment'; orderId: string }
-  | { type: 'advanceOrder'; orderId: string }
-  | { type: 'setOrderProblem'; orderId: string; status: OrderStatus; reason: string }
-  | { type: 'cancelOrder'; orderId: string }
+  | { type: 'setApplicationStatus'; applicationId: string; status: ApplicationStatus }
+  | { type: 'submitApplication'; input: NewApplicationInput }
+  | { type: 'setDriverStatus'; driverId: string; status: DriverStatus }
   | { type: 'setCompanyStatus'; companyId: string; status: Company['status'] }
+  | { type: 'setRequestStatus'; requestId: string; status: WorkforceRequestStatus }
+  | { type: 'markPaymentPaid'; paymentId: string }
+  | { type: 'markPayoutPaid'; payoutId: string }
   | { type: 'markNotificationRead'; id: string }
   | { type: 'markAllNotificationsRead' }
-  | { type: 'updateZonePricing'; zones: ZonePricing[] }
-  | { type: 'updateVehiclePricing'; vehicles: VehiclePricing[] }
-  | { type: 'updateCharges'; charges: AdditionalCharge[] }
-  | { type: 'updateCommissionRules'; rules: CommissionRule[] }
-  | { type: 'updateCompanyPrice'; companyId: string; price: number }
 
 const initialState: AppState = {
   status: 'loading',
-  drivers: [], companies: [], branches: [], orders: [], notifications: [],
-  ratings: [], zonePricing: [], vehiclePricing: [], charges: [],
-  commissionRules: [], revenueSeries: [], invoices: [],
-  driverTransactions: [], companyTransactions: [],
+  drivers: [], companies: [], requests: [], applications: [], salaries: [],
+  payments: [], payouts: [], invoices: [], revenueSeries: [], transactions: [],
+  notifications: [], ratings: [],
 }
 
 const now = () => new Date().toISOString()
+
+// A request's status follows from how many positions are filled, unless an
+// operator has explicitly closed or cancelled it.
+function recomputeRequestStatus(request: WorkforceRequest): WorkforceRequestStatus {
+  if (['draft', 'closed', 'cancelled'].includes(request.status)) return request.status
+  if (request.driversHired >= request.driversRequired) return 'filled'
+  if (request.driversHired > 0) return 'partially_filled'
+  return request.status === 'reviewing' ? 'reviewing' : 'open'
+}
+
+// Hiring and un-hiring both have to keep driver, request and company
+// aggregates in step — this is the one place that knows how.
+function applyHire(state: AppState, application: Application): AppState {
+  const request = state.requests.find((r) => r.id === application.requestId)
+  if (!request) return state
+  const salary = request.salary
+  return {
+    ...state,
+    drivers: state.drivers.map((d) =>
+      d.id === application.driverId
+        ? {
+            ...d,
+            status: 'hired' as DriverStatus,
+            verified: true,
+            employment: {
+              companyId: request.companyId,
+              requestId: request.id,
+              salary,
+              startDate: now(),
+            },
+            wallet: { ...d.wallet, pendingEarnings: salary, balance: salary },
+          }
+        : d,
+    ),
+    requests: state.requests.map((r) => {
+      if (r.id !== request.id) return r
+      const updated = { ...r, driversHired: r.driversHired + 1 }
+      return { ...updated, status: recomputeRequestStatus(updated) }
+    }),
+    companies: state.companies.map((c) =>
+      c.id === request.companyId
+        ? { ...c, driversHired: c.driversHired + 1, monthlyWorkforceCost: c.monthlyWorkforceCost + salary }
+        : c,
+    ),
+    // A hired driver is no longer a candidate elsewhere
+    applications: state.applications.map((a) =>
+      a.driverId === application.driverId && a.id !== application.id && !['rejected', 'withdrawn', 'hired'].includes(a.status)
+        ? { ...a, status: 'withdrawn' as ApplicationStatus, updatedAt: now() }
+        : a,
+    ),
+  }
+}
+
+function releaseHire(state: AppState, application: Application): AppState {
+  const request = state.requests.find((r) => r.id === application.requestId)
+  const driver = state.drivers.find((d) => d.id === application.driverId)
+  if (!request || !driver) return state
+  const salary = driver.employment?.salary ?? request.salary
+  return {
+    ...state,
+    drivers: state.drivers.map((d) =>
+      d.id === driver.id
+        ? { ...d, status: 'available' as DriverStatus, employment: undefined, wallet: { ...d.wallet, pendingEarnings: 0, balance: 0 } }
+        : d,
+    ),
+    requests: state.requests.map((r) => {
+      if (r.id !== request.id) return r
+      const updated = { ...r, driversHired: Math.max(0, r.driversHired - 1) }
+      return { ...updated, status: recomputeRequestStatus(updated) }
+    }),
+    companies: state.companies.map((c) =>
+      c.id === request.companyId
+        ? {
+            ...c,
+            driversHired: Math.max(0, c.driversHired - 1),
+            monthlyWorkforceCost: Math.max(0, c.monthlyWorkforceCost - salary),
+          }
+        : c,
+    ),
+  }
+}
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -66,127 +149,110 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, ...action.data, status: 'ready' }
     case 'loadError':
       return { ...state, status: 'error' }
+
+    case 'setApplicationStatus': {
+      const application = state.applications.find((a) => a.id === action.applicationId)
+      if (!application || application.status === action.status) return state
+
+      let next: AppState = {
+        ...state,
+        applications: state.applications.map((a) =>
+          a.id === action.applicationId ? { ...a, status: action.status, updatedAt: now() } : a,
+        ),
+      }
+      if (action.status === 'hired' && application.status !== 'hired') {
+        next = applyHire(next, application)
+      } else if (application.status === 'hired' && action.status !== 'hired') {
+        next = releaseHire(next, application)
+      }
+      return next
+    }
+
+    case 'submitApplication': {
+      const { input } = action
+      const request = state.requests.find((r) => r.id === input.requestId)
+      if (!request) return state
+      const seq = state.applications.length + 1
+      const application: Application = {
+        id: `app-new-${seq}`,
+        number: `KSS-AP-${3100 + seq}`,
+        driverId: input.driverId,
+        requestId: request.id,
+        companyId: request.companyId,
+        status: 'new',
+        appliedAt: now(),
+        updatedAt: now(),
+        availability: input.availability,
+        preferredArea: input.preferredArea,
+        experienceYears: input.experienceYears,
+        note: input.note,
+      }
+      return { ...state, applications: [application, ...state.applications] }
+    }
+
     case 'setDriverStatus':
       return {
         ...state,
         drivers: state.drivers.map((d) =>
           d.id === action.driverId
-            ? {
-                ...d,
-                status: action.status,
-                connection: action.status === 'approved' ? d.connection : 'offline',
-                documents:
-                  action.status === 'approved'
-                    ? d.documents.map((doc) => ({ ...doc, status: 'approved' as const }))
-                    : action.status === 'rejected'
-                      ? d.documents.map((doc) => ({ ...doc, status: 'rejected' as const }))
-                      : d.documents,
-              }
+            ? { ...d, status: action.status, verified: action.status !== 'under_review' }
             : d,
         ),
       }
-    case 'assignDriver': {
-      const driver = state.drivers.find((d) => d.id === action.driverId)
-      return {
-        ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? {
-                ...o,
-                driverId: action.driverId,
-                status: 'assigned',
-                vehicleType: driver?.vehicle.type ?? o.vehicleType,
-                timeline: [
-                  ...o.timeline,
-                  { status: 'assigned' as const, at: now(), by: 'Dispatch', note: driver?.name },
-                ],
-              }
-            : o,
-        ),
-        drivers: state.drivers.map((d) =>
-          d.id === action.driverId
-            ? { ...d, activeOrders: d.activeOrders + 1, activity: 'delivering' as const, currentOrderId: action.orderId }
-            : d,
-        ),
-      }
-    }
-    case 'cancelAssignment': {
-      const order = state.orders.find((o) => o.id === action.orderId)
-      return {
-        ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? { ...o, driverId: undefined, status: 'new', timeline: [...o.timeline, { status: 'new' as const, at: now(), by: 'Dispatch', note: 'Assignment cancelled' }] }
-            : o,
-        ),
-        drivers: state.drivers.map((d) =>
-          d.id === order?.driverId
-            ? { ...d, activeOrders: Math.max(0, d.activeOrders - 1), activity: 'idle' as const, currentOrderId: undefined }
-            : d,
-        ),
-      }
-    }
-    case 'advanceOrder': {
-      const order = state.orders.find((o) => o.id === action.orderId)
-      if (!order) return state
-      const next = nextStatus(order.status)
-      if (!next) return state
-      const finished = next === 'delivered' || next === 'closed'
-      return {
-        ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? {
-                ...o,
-                status: next,
-                deliveredAt: next === 'delivered' ? now() : o.deliveredAt,
-                etaMins: finished ? undefined : o.etaMins,
-                timeline: [...o.timeline, { status: next, at: now(), by: 'Operations' }],
-              }
-            : o,
-        ),
-        drivers:
-          finished && order.driverId
-            ? state.drivers.map((d) =>
-                d.id === order.driverId
-                  ? { ...d, activeOrders: Math.max(0, d.activeOrders - 1), activity: 'idle' as const, completedOrders: d.completedOrders + (next === 'delivered' ? 1 : 0), currentOrderId: undefined }
-                  : d,
-              )
-            : state.drivers,
-      }
-    }
-    case 'setOrderProblem':
-      return {
-        ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? { ...o, status: action.status, problemReason: action.reason, timeline: [...o.timeline, { status: action.status, at: now(), by: 'Operations', note: action.reason }] }
-            : o,
-        ),
-      }
-    case 'cancelOrder': {
-      const order = state.orders.find((o) => o.id === action.orderId)
-      return {
-        ...state,
-        orders: state.orders.map((o) =>
-          o.id === action.orderId
-            ? { ...o, status: 'cancelled', problemReason: 'Cancelled by operations', timeline: [...o.timeline, { status: 'cancelled' as const, at: now(), by: 'Operations' }] }
-            : o,
-        ),
-        drivers: state.drivers.map((d) =>
-          d.id === order?.driverId
-            ? { ...d, activeOrders: Math.max(0, d.activeOrders - 1), activity: 'idle' as const, currentOrderId: undefined }
-            : d,
-        ),
-      }
-    }
+
     case 'setCompanyStatus':
       return {
         ...state,
         companies: state.companies.map((c) =>
-          c.id === action.companyId ? { ...c, status: action.status } : c,
+          c.id === action.companyId
+            ? { ...c, status: action.status, verified: action.status === 'active' ? true : c.verified }
+            : c,
         ),
       }
+
+    case 'setRequestStatus':
+      return {
+        ...state,
+        requests: state.requests.map((r) =>
+          r.id === action.requestId ? { ...r, status: action.status } : r,
+        ),
+      }
+
+    case 'markPaymentPaid': {
+      const payment = state.payments.find((p) => p.id === action.paymentId)
+      if (!payment) return state
+      return {
+        ...state,
+        payments: state.payments.map((p) =>
+          p.id === action.paymentId ? { ...p, status: 'paid', paidAt: now() } : p,
+        ),
+        salaries: state.salaries.map((s) =>
+          s.companyId === payment.companyId && s.period === payment.period
+            ? { ...s, status: 'paid', paid: s.totalDue }
+            : s,
+        ),
+        invoices: state.invoices.map((inv) =>
+          inv.companyId === payment.companyId && inv.period === payment.period
+            ? { ...inv, status: 'paid' }
+            : inv,
+        ),
+        // Settling the company bill releases that company's driver payouts
+        payouts: state.payouts.map((p) =>
+          p.companyId === payment.companyId && p.period === payment.period && p.status === 'pending'
+            ? { ...p, status: 'processing' }
+            : p,
+        ),
+      }
+    }
+
+    case 'markPayoutPaid':
+      return {
+        ...state,
+        payouts: state.payouts.map((p) =>
+          p.id === action.payoutId ? { ...p, status: 'paid', paidAt: now() } : p,
+        ),
+      }
+
     case 'markNotificationRead':
       return {
         ...state,
@@ -196,28 +262,14 @@ function reducer(state: AppState, action: Action): AppState {
       }
     case 'markAllNotificationsRead':
       return { ...state, notifications: state.notifications.map((n) => ({ ...n, read: true })) }
-    case 'updateZonePricing':
-      return { ...state, zonePricing: action.zones }
-    case 'updateVehiclePricing':
-      return { ...state, vehiclePricing: action.vehicles }
-    case 'updateCharges':
-      return { ...state, charges: action.charges }
-    case 'updateCommissionRules':
-      return { ...state, commissionRules: action.rules }
-    case 'updateCompanyPrice':
-      return {
-        ...state,
-        companies: state.companies.map((c) =>
-          c.id === action.companyId ? { ...c, deliveryPrice: action.price } : c,
-        ),
-      }
+
     default:
       return state
   }
 }
 
 interface AppStateContextValue extends AppState {
-  dispatch: React.Dispatch<Action>
+  dispatch: Dispatch<Action>
 }
 
 const AppStateContext = createContext<AppStateContextValue | null>(null)
@@ -230,32 +282,28 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     async function load() {
       try {
         const [
-          drivers, companies, branches, orders, notifications, ratings,
-          zonePricing, vehiclePricing, charges, commissionRules,
-          revenueSeries, invoices, driverTransactions, companyTransactions,
+          drivers, companies, requests, applications, salaries, payments,
+          payouts, invoices, revenueSeries, transactions, notifications, ratings,
         ] = await Promise.all([
-          driverService.list(),
-          companyService.list(),
-          companyService.listBranches(),
-          orderService.list(),
-          notificationService.list(),
-          ratingService.list(),
-          pricingService.zones(),
-          pricingService.vehicles(),
-          pricingService.charges(),
-          pricingService.commissionRules(),
-          financeService.revenueSeries(),
-          financeService.invoices(),
-          financeService.driverTransactions(),
-          financeService.companyTransactions(),
+          driversService.list(),
+          companiesService.list(),
+          opportunitiesService.list(),
+          applicationsService.list(),
+          salariesService.list(),
+          paymentsService.companyPayments(),
+          paymentsService.driverPayouts(),
+          invoicesService.list(),
+          reportsService.revenueSeries(),
+          walletService.transactions(),
+          notificationsService.list(),
+          ratingsService.list(),
         ])
         if (!cancelled) {
           dispatch({
             type: 'loaded',
             data: {
-              drivers, companies, branches, orders, notifications, ratings,
-              zonePricing, vehiclePricing, charges, commissionRules,
-              revenueSeries, invoices, driverTransactions, companyTransactions,
+              drivers, companies, requests, applications, salaries, payments,
+              payouts, invoices, revenueSeries, transactions, notifications, ratings,
             },
           })
         }

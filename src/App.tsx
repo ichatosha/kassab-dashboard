@@ -12,20 +12,22 @@ import { LoginPage } from './pages/LoginPage'
 // Route-level code splitting keeps the public landing and login bundles
 // small; the chart-heavy admin pages load on demand.
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
-const OrdersPage = lazy(() => import('./pages/OrdersPage').then((m) => ({ default: m.OrdersPage })))
-const TrackingPage = lazy(() => import('./pages/TrackingPage').then((m) => ({ default: m.TrackingPage })))
+const OpportunitiesPage = lazy(() => import('./pages/OpportunitiesPage').then((m) => ({ default: m.OpportunitiesPage })))
+const OpportunityDetailsPage = lazy(() => import('./pages/OpportunityDetailsPage').then((m) => ({ default: m.OpportunityDetailsPage })))
+const RequestsPage = lazy(() => import('./pages/RequestsPage').then((m) => ({ default: m.RequestsPage })))
+const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage').then((m) => ({ default: m.ApplicationsPage })))
+const PipelinePage = lazy(() => import('./pages/PipelinePage').then((m) => ({ default: m.PipelinePage })))
 const DriversPage = lazy(() => import('./pages/DriversPage').then((m) => ({ default: m.DriversPage })))
 const DriverProfilePage = lazy(() => import('./pages/DriverProfilePage').then((m) => ({ default: m.DriverProfilePage })))
-const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })))
-const VehiclesPage = lazy(() => import('./pages/VehiclesPage').then((m) => ({ default: m.VehiclesPage })))
 const CompaniesPage = lazy(() => import('./pages/CompaniesPage').then((m) => ({ default: m.CompaniesPage })))
 const CompanyDetailsPage = lazy(() => import('./pages/CompanyDetailsPage').then((m) => ({ default: m.CompanyDetailsPage })))
-const BranchesPage = lazy(() => import('./pages/BranchesPage').then((m) => ({ default: m.BranchesPage })))
-const PricingPage = lazy(() => import('./pages/PricingPage').then((m) => ({ default: m.PricingPage })))
-const CommissionsPage = lazy(() => import('./pages/CommissionsPage').then((m) => ({ default: m.CommissionsPage })))
-const FinancePage = lazy(() => import('./pages/FinancePage').then((m) => ({ default: m.FinancePage })))
-const WalletsPage = lazy(() => import('./pages/WalletsPage').then((m) => ({ default: m.WalletsPage })))
+const SalariesPage = lazy(() => import('./pages/SalariesPage').then((m) => ({ default: m.SalariesPage })))
+const PaymentsPage = lazy(() => import('./pages/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
+const PayoutsPage = lazy(() => import('./pages/PayoutsPage').then((m) => ({ default: m.PayoutsPage })))
 const InvoicesPage = lazy(() => import('./pages/InvoicesPage').then((m) => ({ default: m.InvoicesPage })))
+const RevenuePage = lazy(() => import('./pages/RevenuePage').then((m) => ({ default: m.RevenuePage })))
+const PerformancePage = lazy(() => import('./pages/PerformancePage').then((m) => ({ default: m.PerformancePage })))
+const RatingsPage = lazy(() => import('./pages/RatingsPage').then((m) => ({ default: m.RatingsPage })))
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
@@ -44,21 +46,37 @@ export default function App() {
                   <Route path="/login" element={<LoginPage />} />
                   <Route element={<AppLayout />}>
                     <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/orders" element={<OrdersPage />} />
-                    <Route path="/tracking" element={<TrackingPage />} />
-                    <Route path="/drivers" element={<DriversPage />} />
-                    <Route path="/drivers/:id" element={<DriverProfilePage />} />
-                    <Route path="/approvals" element={<ApprovalsPage />} />
-                    <Route path="/vehicles" element={<VehiclesPage />} />
-                    <Route path="/companies" element={<CompaniesPage />} />
+
+                    {/* Workforce */}
+                    <Route path="/opportunities" element={<OpportunitiesPage />} />
+                    <Route path="/opportunities/:id" element={<OpportunityDetailsPage />} />
+                    <Route path="/requests" element={<RequestsPage />} />
+                    <Route path="/applications" element={<ApplicationsPage />} />
+                    <Route path="/pipeline" element={<PipelinePage />} />
+
+                    {/* Drivers */}
+                    <Route path="/drivers" element={<DriversPage scope="all" />} />
+                    <Route path="/drivers/available" element={<DriversPage scope="available" />} />
+                    <Route path="/drivers/hired" element={<DriversPage scope="hired" />} />
+                    <Route path="/drivers/profile/:id" element={<DriverProfilePage />} />
+
+                    {/* Companies */}
+                    <Route path="/companies" element={<CompaniesPage scope="all" />} />
+                    <Route path="/companies/hiring" element={<CompaniesPage scope="hiring" />} />
                     <Route path="/companies/:id" element={<CompanyDetailsPage />} />
-                    <Route path="/branches" element={<BranchesPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/commissions" element={<CommissionsPage />} />
-                    <Route path="/finance" element={<FinancePage />} />
-                    <Route path="/wallets" element={<WalletsPage />} />
+
+                    {/* Finance */}
+                    <Route path="/salaries" element={<SalariesPage />} />
+                    <Route path="/payments" element={<PaymentsPage />} />
+                    <Route path="/payouts" element={<PayoutsPage />} />
                     <Route path="/invoices" element={<InvoicesPage />} />
+                    <Route path="/revenue" element={<RevenuePage />} />
+
+                    {/* Performance */}
+                    <Route path="/performance" element={<PerformancePage />} />
+                    <Route path="/ratings" element={<RatingsPage />} />
                     <Route path="/reports" element={<ReportsPage />} />
+
                     <Route path="/notifications" element={<NotificationsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="*" element={<NotFoundPage />} />

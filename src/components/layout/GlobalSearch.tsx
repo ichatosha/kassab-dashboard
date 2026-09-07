@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, ClipboardList, Search, User } from 'lucide-react'
+import { Briefcase, Building2, FileText, Search, User } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n'
+import type { TranslationKey } from '../../i18n'
 import { useAppState } from '../../store/AppState'
+
+type Group = 'drivers' | 'companies' | 'opportunities' | 'applications'
 
 interface Result {
   id: string
-  group: 'orders' | 'drivers' | 'companies'
+  group: Group
   label: string
   sub: string
   to: string
@@ -14,7 +18,7 @@ interface Result {
 
 export function GlobalSearch() {
   const { t, locale } = useI18n()
-  const { orders, drivers, companies } = useAppState()
+  const { drivers, companies, requests, applications } = useAppState()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
@@ -31,27 +35,51 @@ export function GlobalSearch() {
   const results = useMemo<Result[]>(() => {
     const q = query.trim().toLowerCase()
     if (q.length < 2) return []
+    const raw = query.trim()
     const out: Result[] = []
-    orders
-      .filter((o) => o.number.toLowerCase().includes(q) || o.customerName.toLowerCase().includes(q))
-      .slice(0, 4)
-      .forEach((o) => out.push({ id: o.id, group: 'orders', label: o.number, sub: o.customerName, to: `/orders?q=${encodeURIComponent(o.number)}` }))
-    drivers
-      .filter((d) => d.name.toLowerCase().includes(q) || d.nameAr.includes(query.trim()) || d.phone.replace(/\s/g, '').includes(q))
-      .slice(0, 4)
-      .forEach((d) => out.push({ id: d.id, group: 'drivers', label: locale === 'ar' ? d.nameAr : d.name, sub: d.phone, to: `/drivers/${d.id}` }))
-    companies
-      .filter((c) => c.name.toLowerCase().includes(q) || c.nameAr.includes(query.trim()))
-      .slice(0, 4)
-      .forEach((c) => out.push({ id: c.id, group: 'companies', label: locale === 'ar' ? c.nameAr : c.name, sub: c.contactName, to: `/companies/${c.id}` }))
-    return out
-  }, [query, orders, drivers, companies, locale])
+    const companyName = (id: string) => {
+      const c = companies.find((x) => x.id === id)
+      return c ? (locale === 'ar' ? c.nameAr : c.name) : ''
+    }
 
-  const groups: Result['group'][] = ['orders', 'drivers', 'companies']
-  const groupIcon = {
-    orders: <ClipboardList className="h-3.5 w-3.5" aria-hidden />,
+    drivers
+      .filter((d) => d.name.toLowerCase().includes(q) || d.nameAr.includes(raw) || d.phone.replace(/\s/g, '').includes(q) || d.code.toLowerCase().includes(q))
+      .slice(0, 4)
+      .forEach((d) => out.push({ id: d.id, group: 'drivers', label: locale === 'ar' ? d.nameAr : d.name, sub: d.phone, to: `/drivers/profile/${d.id}` }))
+
+    companies
+      .filter((c) => c.name.toLowerCase().includes(q) || c.nameAr.includes(raw))
+      .slice(0, 4)
+      .forEach((c) => out.push({ id: c.id, group: 'companies', label: locale === 'ar' ? c.nameAr : c.name, sub: c.city, to: `/companies/${c.id}` }))
+
+    requests
+      .filter((r) => r.number.toLowerCase().includes(q) || companyName(r.companyId).toLowerCase().includes(q) || companyName(r.companyId).includes(raw))
+      .slice(0, 4)
+      .forEach((r) => out.push({ id: r.id, group: 'opportunities', label: r.number, sub: companyName(r.companyId), to: `/opportunities/${r.id}` }))
+
+    applications
+      .filter((a) => a.number.toLowerCase().includes(q))
+      .slice(0, 3)
+      .forEach((a) => {
+        const d = drivers.find((x) => x.id === a.driverId)
+        out.push({
+          id: a.id,
+          group: 'applications',
+          label: a.number,
+          sub: d ? (locale === 'ar' ? d.nameAr : d.name) : '',
+          to: `/applications?open=${a.id}`,
+        })
+      })
+
+    return out
+  }, [query, drivers, companies, requests, applications, locale])
+
+  const groups: Group[] = ['drivers', 'companies', 'opportunities', 'applications']
+  const groupIcon: Record<Group, ReactNode> = {
     drivers: <User className="h-3.5 w-3.5" aria-hidden />,
     companies: <Building2 className="h-3.5 w-3.5" aria-hidden />,
+    opportunities: <Briefcase className="h-3.5 w-3.5" aria-hidden />,
+    applications: <FileText className="h-3.5 w-3.5" aria-hidden />,
   }
 
   return (
@@ -79,7 +107,7 @@ export function GlobalSearch() {
               <div key={g}>
                 <p className="flex items-center gap-1.5 px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-ink-400">
                   {groupIcon[g]}
-                  {t(`search.${g}`)}
+                  {t(`search.${g}` as TranslationKey)}
                 </p>
                 {items.map((r) => (
                   <button
