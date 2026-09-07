@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Bike, Briefcase, Check, Clock, FilterX, MapPin, Users } from 'lucide-react'
+import { Briefcase, FilterX } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { useDriverScope } from '../../hooks/usePortalScope'
@@ -9,10 +8,11 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { SearchInput, SelectField } from '../../components/ui/Field'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { Avatar, PageHeader, VerifiedMark } from '../../components/ui/misc'
-import { formatMoney, formatNumber, formatRelative } from '../../lib/format'
+import { PageHeader } from '../../components/ui/misc'
+import { formatMoney, formatNumber } from '../../lib/format'
 import { EGYPT_CITIES, cityName } from '../../lib/geo'
 import { OPEN_REQUEST_STATUSES } from '../../lib/status'
+import { JobCard } from './JobCard'
 import type { EmploymentType } from '../../types/domain'
 
 // The driver's job board. Same marketplace data as the admin view, but
@@ -20,7 +20,7 @@ import type { EmploymentType } from '../../types/domain'
 export function DriverJobsPage() {
   const { t, locale } = useI18n()
   const { driver, requests, appliedRequestIds } = useDriverScope()
-  const { companyById, companyName } = useLookups()
+  const { companyName } = useLookups()
 
   const [query, setQuery] = useState('')
   const [city, setCity] = useState(driver?.city ?? 'all')
@@ -105,64 +105,9 @@ export function DriverJobsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((r) => {
-            const company = companyById.get(r.companyId)
-            const remaining = Math.max(0, r.driversRequired - r.driversHired)
-            const applied = appliedRequestIds.has(r.id)
-            return (
-              <article key={r.id} className="flex flex-col rounded-xl border border-ink-200/80 bg-surface p-4 shadow-card transition-colors hover:border-brand-300">
-                <div className="flex items-start gap-3">
-                  <Avatar name={company?.name ?? '—'} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-ink-950">{companyName(r.companyId)}</p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2">
-                      {company && <VerifiedMark verified={company.verified} />}
-                      <span className="text-xs text-ink-500">{t(`biz.${company?.type ?? 'company'}` as TranslationKey)}</span>
-                    </div>
-                  </div>
-                  {applied && (
-                    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:ring-emerald-500/25">
-                      <Check className="h-3 w-3" aria-hidden />
-                      {t('driver.applied')}
-                    </span>
-                  )}
-                </div>
-
-                <p className="tnum mt-3 text-xl font-bold text-brand-700">
-                  {formatMoney(r.salary, locale)}
-                  <span className="ms-1 text-xs font-medium text-ink-500">{t('common.perMonth')}</span>
-                </p>
-
-                <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-ink-600">
-                    <MapPin className="h-3.5 w-3.5 text-ink-400" aria-hidden />
-                    {cityName(r.city, locale)}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-ink-600">
-                    <Clock className="h-3.5 w-3.5 text-ink-400" aria-hidden />
-                    {t(`emp.${r.employmentType}` as TranslationKey)}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-ink-600">
-                    <Users className="h-3.5 w-3.5 text-ink-400" aria-hidden />
-                    <span className="tnum">{formatNumber(remaining, locale)} {t('opp.remaining')}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-ink-600">
-                    <Bike className="h-3.5 w-3.5 text-ink-400" aria-hidden />
-                    {t('moto.category')}
-                  </div>
-                </dl>
-
-                <p className="mt-3 text-[11px] text-ink-400">{formatRelative(r.createdAt, locale)}</p>
-
-                <Link
-                  to={`/delivery/jobs/${r.id}`}
-                  className="mt-4 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"
-                >
-                  {applied ? t('driver.viewJob') : t('opp.apply')}
-                </Link>
-              </article>
-            )
-          })}
+          {filtered.map((r) => (
+            <JobCard key={r.id} request={r} applied={appliedRequestIds.has(r.id)} />
+          ))}
         </div>
       )}
     </div>

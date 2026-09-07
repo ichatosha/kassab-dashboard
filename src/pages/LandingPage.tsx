@@ -157,21 +157,22 @@ export function LandingPage() {
               <span className="text-brand-600">{t('landing.hero.title2')}</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-600">{t('landing.hero.sub')}</p>
-            {/* Employers are the buying side, so they get the primary action */}
+            {/* Drivers lead: the platform needs supply before it needs demand */}
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                to={user ? homePath : '/register/company'}
+                to={user ? homePath : '/register/driver'}
                 className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:translate-y-px"
               >
-                {user ? t('landing.hero.ctaPortal') : t('landing.hero.cta')}
+                <Bike className="h-4 w-4" aria-hidden />
+                {user ? t('landing.hero.ctaPortal') : t('landing.hero.ctaDriver')}
                 <CtaArrow className="h-4 w-4" aria-hidden />
               </Link>
               <Link
-                to="/register/driver"
+                to="/register/company"
                 className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
               >
-                <Bike className="h-4 w-4" aria-hidden />
-                {t('landing.hero.ctaDriver')}
+                <Building2 className="h-4 w-4" aria-hidden />
+                {t('landing.hero.cta')}
               </Link>
             </div>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-4">

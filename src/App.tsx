@@ -52,6 +52,7 @@ const CompanyProfilePage = lazy(() => import('./pages/company/CompanyProfilePage
 const DriverHomePage = lazy(() => import('./pages/delivery/DriverHomePage').then((m) => ({ default: m.DriverHomePage })))
 const DriverJobsPage = lazy(() => import('./pages/delivery/DriverJobsPage').then((m) => ({ default: m.DriverJobsPage })))
 const DriverJobDetailsPage = lazy(() => import('./pages/delivery/DriverJobDetailsPage').then((m) => ({ default: m.DriverJobDetailsPage })))
+const DriverSavedJobsPage = lazy(() => import('./pages/delivery/DriverSavedJobsPage').then((m) => ({ default: m.DriverSavedJobsPage })))
 const DriverApplicationsPage = lazy(() => import('./pages/delivery/DriverApplicationsPage').then((m) => ({ default: m.DriverApplicationsPage })))
 const DriverWalletPage = lazy(() => import('./pages/delivery/DriverWalletPage').then((m) => ({ default: m.DriverWalletPage })))
 const DriverAccountPage = lazy(() => import('./pages/delivery/DriverAccountPage').then((m) => ({ default: m.DriverAccountPage })))
@@ -121,6 +122,7 @@ export default function App() {
                     <Route index element={<DriverHomePage />} />
                     <Route path="jobs" element={<DriverJobsPage />} />
                     <Route path="jobs/:id" element={<DriverJobDetailsPage />} />
+                    <Route path="saved" element={<DriverSavedJobsPage />} />
                     <Route path="applications" element={<DriverApplicationsPage />} />
                     <Route path="wallet" element={<DriverWalletPage />} />
                     <Route path="profile" element={<DriverAccountPage />} />

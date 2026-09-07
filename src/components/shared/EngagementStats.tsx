@@ -84,6 +84,50 @@ export function EngagementPanel({ requestId, applicants }: { requestId: string; 
   )
 }
 
+// Icon-only reactions, for job cards where there is no room for labels.
+export function InterestIconButtons({ requestId }: { requestId: string }) {
+  const { t } = useI18n()
+  const { likedOpportunities, savedOpportunities, dispatch } = useAppState()
+  const liked = likedOpportunities.includes(requestId)
+  const saved = savedOpportunities.includes(requestId)
+
+  const base =
+    'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500'
+
+  return (
+    <span className="flex shrink-0 items-center gap-1.5">
+      <button
+        type="button"
+        aria-pressed={liked}
+        aria-label={liked ? t('eng.liked') : t('eng.like')}
+        title={liked ? t('eng.liked') : t('eng.like')}
+        onClick={() => dispatch({ type: 'toggleOpportunityLike', requestId })}
+        className={`${base} ${
+          liked
+            ? 'border-brand-200 bg-brand-50 text-brand-700'
+            : 'border-ink-200 bg-surface text-ink-400 hover:border-brand-300 hover:text-brand-700'
+        }`}
+      >
+        <Heart className={`h-4 w-4 ${liked ? 'fill-brand-600 text-brand-600' : ''}`} aria-hidden />
+      </button>
+      <button
+        type="button"
+        aria-pressed={saved}
+        aria-label={saved ? t('eng.saved') : t('eng.save')}
+        title={saved ? t('eng.saved') : t('eng.save')}
+        onClick={() => dispatch({ type: 'toggleOpportunitySave', requestId })}
+        className={`${base} ${
+          saved
+            ? 'border-ink-300 bg-ink-100 text-ink-900'
+            : 'border-ink-200 bg-surface text-ink-400 hover:border-ink-400 hover:text-ink-900'
+        }`}
+      >
+        <Bookmark className={`h-4 w-4 ${saved ? 'fill-ink-700 text-ink-700' : ''}`} aria-hidden />
+      </button>
+    </span>
+  )
+}
+
 // The visitor-facing reactions. Anyone browsing an opportunity can like or
 // save it; only the roles above get to see what those numbers add up to.
 export function InterestActions({ requestId }: { requestId: string }) {
