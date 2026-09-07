@@ -156,7 +156,7 @@ export function DriversPage({ scope = 'all' }: { scope?: Scope }) {
           columns={columns}
           rows={pageRows}
           rowKey={(d) => d.id}
-          onRowClick={(d) => navigate(`/drivers/profile/${d.id}`)}
+          onRowClick={(d) => navigate(`/admin/drivers/profile/${d.id}`)}
           stickyHeader
           emptyState={
             <EmptyState

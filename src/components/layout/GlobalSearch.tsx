@@ -44,17 +44,17 @@ function useSearchResults(query: string): Result[] {
     drivers
       .filter((d) => d.name.toLowerCase().includes(q) || d.nameAr.includes(raw) || d.phone.replace(/\s/g, '').includes(q) || d.code.toLowerCase().includes(q))
       .slice(0, 4)
-      .forEach((d) => out.push({ id: d.id, group: 'drivers', label: locale === 'ar' ? d.nameAr : d.name, sub: d.phone, to: `/drivers/profile/${d.id}` }))
+      .forEach((d) => out.push({ id: d.id, group: 'drivers', label: locale === 'ar' ? d.nameAr : d.name, sub: d.phone, to: `/admin/drivers/profile/${d.id}` }))
 
     companies
       .filter((c) => c.name.toLowerCase().includes(q) || c.nameAr.includes(raw))
       .slice(0, 4)
-      .forEach((c) => out.push({ id: c.id, group: 'companies', label: locale === 'ar' ? c.nameAr : c.name, sub: c.city, to: `/companies/${c.id}` }))
+      .forEach((c) => out.push({ id: c.id, group: 'companies', label: locale === 'ar' ? c.nameAr : c.name, sub: c.city, to: `/admin/companies/${c.id}` }))
 
     requests
       .filter((r) => r.number.toLowerCase().includes(q) || companyName(r.companyId).toLowerCase().includes(q) || companyName(r.companyId).includes(raw))
       .slice(0, 4)
-      .forEach((r) => out.push({ id: r.id, group: 'opportunities', label: r.number, sub: companyName(r.companyId), to: `/opportunities/${r.id}` }))
+      .forEach((r) => out.push({ id: r.id, group: 'opportunities', label: r.number, sub: companyName(r.companyId), to: `/admin/opportunities/${r.id}` }))
 
     applications
       .filter((a) => a.number.toLowerCase().includes(q))
@@ -66,7 +66,7 @@ function useSearchResults(query: string): Result[] {
           group: 'applications',
           label: a.number,
           sub: d ? (locale === 'ar' ? d.nameAr : d.name) : '',
-          to: `/applications?open=${a.id}`,
+          to: `/admin/applications?open=${a.id}`,
         })
       })
 

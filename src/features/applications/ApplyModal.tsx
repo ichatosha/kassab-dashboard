@@ -16,22 +16,33 @@ import type { EmploymentType, WorkforceRequest } from '../../types/domain'
 interface Props {
   request: WorkforceRequest
   onClose: () => void
+  /** In the driver portal the applicant is the signed-in driver, not a choice */
+  fixedDriverId?: string
+  /** Where "view my applications" leads after a successful submission */
+  applicationsPath?: string
 }
 
-// The application form starts from an existing driver profile — the demo
-// stands in for the driver app's logged-in session.
-export function ApplyModal({ request, onClose }: Props) {
+// The application form starts from an existing driver profile. In the
+// driver portal that profile is the signed-in account; an admin filing on
+// someone's behalf picks the applicant instead.
+export function ApplyModal({
+  request, onClose, fixedDriverId, applicationsPath = '/admin/applications',
+}: Props) {
   const { t, locale } = useI18n()
   const { drivers, applications, dispatch } = useAppState()
   const { toast } = useToast()
 
   // Only drivers who could actually take this job and have not applied yet
   const candidates = useMemo(() => {
+    if (fixedDriverId) {
+      const self = drivers.filter((d) => d.id === fixedDriverId)
+      return self
+    }
     const already = new Set(
       applications.filter((a) => a.requestId === request.id).map((a) => a.driverId),
     )
     return drivers.filter((d) => d.status === 'available' && !already.has(d.id))
-  }, [drivers, applications, request.id])
+  }, [drivers, applications, request.id, fixedDriverId])
 
   const [driverId, setDriverId] = useState(candidates[0]?.id ?? '')
   const driver = drivers.find((d) => d.id === driverId)
@@ -106,7 +117,7 @@ export function ApplyModal({ request, onClose }: Props) {
           <p className="max-w-sm text-sm text-ink-500">{t('form.successBody')}</p>
           <div className="mt-2 flex gap-2">
             <Link
-              to="/applications"
+              to={applicationsPath}
               className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"
             >
               {t('form.viewApplications')}
@@ -149,11 +160,13 @@ export function ApplyModal({ request, onClose }: Props) {
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-400">{t('form.personal')}</h3>
             <div className="grid gap-3 sm:grid-cols-2">
-              <SelectField label={t('form.selectDriver')} value={driverId} onChange={(e) => selectDriver(e.target.value)} className="sm:col-span-2">
-                {candidates.map((d) => (
-                  <option key={d.id} value={d.id}>{locale === 'ar' ? d.nameAr : d.name}</option>
-                ))}
-              </SelectField>
+              {!fixedDriverId && (
+                <SelectField label={t('form.selectDriver')} value={driverId} onChange={(e) => selectDriver(e.target.value)} className="sm:col-span-2">
+                  {candidates.map((d) => (
+                    <option key={d.id} value={d.id}>{locale === 'ar' ? d.nameAr : d.name}</option>
+                  ))}
+                </SelectField>
+              )}
               <TextField label={t('form.fullName')} value={driver ? (locale === 'ar' ? driver.nameAr : driver.name) : ''} disabled />
               <TextField label={t('form.age')} type="number" min={18} max={60} value={age} onChange={(e) => setAge(e.target.value)} error={errors.age} required />
               <TextField label={t('form.address')} value={address} onChange={(e) => setAddress(e.target.value)} error={errors.address} className="sm:col-span-2" required />

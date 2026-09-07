@@ -1,19 +1,12 @@
 import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  Banknote, Bell, Bike, Briefcase, Building2, ClipboardList, Columns3,
-  FileText, Gauge, LayoutDashboard, ReceiptText, Settings, Star, TrendingUp,
-  UserCheck, Users, Wallet,
-} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { Logo } from './Logo'
 import { BrandCredit } from '../shared/BrandCredit'
-import { useAppState } from '../../store/AppState'
-import { OPEN_REQUEST_STATUSES } from '../../lib/status'
 
-interface NavItem {
+export interface NavItem {
   to: string
   labelKey: TranslationKey
   icon: ReactNode
@@ -21,14 +14,21 @@ interface NavItem {
   end?: boolean
 }
 
-interface NavSection {
+export interface NavSection {
   labelKey?: TranslationKey
   items: NavItem[]
 }
 
-export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+// Presentational: each portal supplies its own navigation.
+export function Sidebar({
+  open, onClose, sections, footerKey,
+}: {
+  open: boolean
+  onClose: () => void
+  sections: NavSection[]
+  footerKey: TranslationKey
+}) {
   const { t, dir } = useI18n()
-  const { applications, requests, drivers, payments } = useAppState()
 
   // While the mobile drawer is open it owns the screen: Escape closes it and
   // the page behind it must not scroll.
@@ -44,65 +44,6 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       document.body.style.overflow = ''
     }
   }, [open, onClose])
-
-  const newApplications = applications.filter((a) => a.status === 'new').length
-  const openRequests = requests.filter((r) => OPEN_REQUEST_STATUSES.includes(r.status)).length
-  const availableDrivers = drivers.filter((d) => d.status === 'available').length
-  const overduePayments = payments.filter((p) => p.status === 'overdue').length
-
-  const sections: NavSection[] = [
-    { items: [{ to: '/dashboard', labelKey: 'nav.dashboard', icon: <LayoutDashboard className="h-4 w-4" /> }] },
-    {
-      labelKey: 'nav.workforce',
-      items: [
-        { to: '/opportunities', labelKey: 'nav.opportunities', icon: <Briefcase className="h-4 w-4" />, badge: openRequests },
-        { to: '/requests', labelKey: 'nav.requests', icon: <ClipboardList className="h-4 w-4" /> },
-        { to: '/applications', labelKey: 'nav.applications', icon: <FileText className="h-4 w-4" />, badge: newApplications },
-        { to: '/pipeline', labelKey: 'nav.pipeline', icon: <Columns3 className="h-4 w-4" /> },
-      ],
-    },
-    {
-      labelKey: 'nav.drivers',
-      items: [
-        { to: '/drivers', labelKey: 'nav.allDrivers', icon: <Users className="h-4 w-4" />, end: true },
-        { to: '/drivers/available', labelKey: 'nav.availableDrivers', icon: <Bike className="h-4 w-4" />, badge: availableDrivers },
-        { to: '/drivers/hired', labelKey: 'nav.hiredDrivers', icon: <UserCheck className="h-4 w-4" /> },
-      ],
-    },
-    {
-      labelKey: 'nav.companies',
-      items: [
-        { to: '/companies', labelKey: 'nav.allCompanies', icon: <Building2 className="h-4 w-4" />, end: true },
-        { to: '/companies/hiring', labelKey: 'nav.hiringCompanies', icon: <Briefcase className="h-4 w-4" /> },
-      ],
-    },
-    {
-      labelKey: 'nav.finance',
-      items: [
-        { to: '/salaries', labelKey: 'nav.salaries', icon: <Banknote className="h-4 w-4" /> },
-        { to: '/payments', labelKey: 'nav.payments', icon: <Wallet className="h-4 w-4" />, badge: overduePayments },
-        { to: '/payouts', labelKey: 'nav.payouts', icon: <Wallet className="h-4 w-4" /> },
-        { to: '/invoices', labelKey: 'nav.invoices', icon: <ReceiptText className="h-4 w-4" /> },
-        { to: '/revenue', labelKey: 'nav.revenue', icon: <TrendingUp className="h-4 w-4" /> },
-      ],
-    },
-    {
-      labelKey: 'nav.performance',
-      items: [
-        { to: '/performance', labelKey: 'nav.driverPerformance', icon: <Gauge className="h-4 w-4" /> },
-        { to: '/ratings', labelKey: 'nav.ratings', icon: <Star className="h-4 w-4" /> },
-        { to: '/reports', labelKey: 'nav.reports', icon: <FileText className="h-4 w-4" /> },
-      ],
-    },
-    {
-      labelKey: 'nav.communication',
-      items: [{ to: '/notifications', labelKey: 'nav.notifications', icon: <Bell className="h-4 w-4" /> }],
-    },
-    {
-      labelKey: 'nav.administration',
-      items: [{ to: '/settings', labelKey: 'nav.settings', icon: <Settings className="h-4 w-4" /> }],
-    },
-  ]
 
   return (
     <>
@@ -158,7 +99,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           ))}
         </nav>
         <div className="border-t border-ink-100 px-4 py-3">
-          <p className="text-[11px] text-ink-400">{t('brand.descriptor')}</p>
+          <p className="text-[11px] text-ink-400">{t(footerKey)}</p>
           <BrandCredit className="mt-1 text-[10px] text-ink-300" />
         </div>
       </aside>

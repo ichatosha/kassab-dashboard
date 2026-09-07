@@ -97,7 +97,7 @@ function FeatureList({ items }: { items: TranslationKey[] }) {
 
 export function LandingPage() {
   const { t, locale, dir, toggleLocale } = useI18n()
-  const { user } = useAuth()
+  const { user, homePath } = useAuth()
   const CtaArrow = dir === 'rtl' ? ArrowLeft : ArrowRight
 
   const verifiedDrivers = mockDrivers.filter((d) => d.status !== 'under_review').length
@@ -133,11 +133,11 @@ export function LandingPage() {
             </button>
             <ThemeToggle />
             <Link
-              to={user ? '/dashboard' : '/login'}
+              to={user ? homePath : '/login'}
               className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-600 px-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-800 sm:px-4"
             >
               <LayoutDashboard className="hidden h-4 w-4 sm:block" aria-hidden />
-              {user ? t('landing.hero.cta') : t('landing.nav.signIn')}
+              {user ? t('landing.hero.ctaPortal') : t('landing.nav.signIn')}
             </Link>
           </div>
         </div>
@@ -157,21 +157,22 @@ export function LandingPage() {
               <span className="text-brand-600">{t('landing.hero.title2')}</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-600">{t('landing.hero.sub')}</p>
+            {/* Employers are the buying side, so they get the primary action */}
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                to={user ? '/dashboard' : '/login'}
+                to={user ? homePath : '/register/company'}
                 className="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-800 active:translate-y-px"
               >
-                {t('landing.hero.cta')}
+                {user ? t('landing.hero.ctaPortal') : t('landing.hero.cta')}
                 <CtaArrow className="h-4 w-4" aria-hidden />
               </Link>
-              <a
-                href="#drivers"
+              <Link
+                to="/register/driver"
                 className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
               >
                 <Bike className="h-4 w-4" aria-hidden />
                 {t('landing.hero.ctaDriver')}
-              </a>
+              </Link>
             </div>
             <dl className="mt-8 grid max-w-md grid-cols-3 gap-4">
               {[
@@ -328,13 +329,22 @@ export function LandingPage() {
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-16 text-center lg:px-6">
             <h2 className="max-w-2xl text-2xl font-bold tracking-tight text-white md:text-3xl">{t('landing.cta.title')}</h2>
             <p className="text-sm text-brandfx-100">{t('landing.cta.sub')}</p>
-            <Link
-              to={user ? '/dashboard' : '/login'}
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-brand-700 shadow-sm transition-all hover:bg-brand-50 active:translate-y-px"
-            >
-              {t('landing.hero.cta')}
-              <CtaArrow className="h-4 w-4" aria-hidden />
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to={user ? homePath : '/register/company'}
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-surface px-6 text-sm font-semibold text-brand-700 shadow-sm transition-all hover:bg-brand-50 active:translate-y-px"
+              >
+                {user ? t('landing.hero.ctaPortal') : t('landing.hero.cta')}
+                <CtaArrow className="h-4 w-4" aria-hidden />
+              </Link>
+              <Link
+                to="/register/driver"
+                className="inline-flex h-11 items-center gap-2 rounded-lg px-6 text-sm font-semibold text-white ring-1 ring-inset ring-white/40 transition-colors hover:bg-white/10"
+              >
+                <Bike className="h-4 w-4" aria-hidden />
+                {t('landing.hero.ctaDriver')}
+              </Link>
+            </div>
           </div>
         </section>
       </main>

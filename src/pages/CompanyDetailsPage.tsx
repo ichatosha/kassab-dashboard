@@ -45,7 +45,7 @@ export function CompanyDetailsPage() {
     return (
       <EmptyState
         title={t('notFound.title')}
-        action={<Link to="/companies" className="text-sm font-medium text-brand-600">{t('nav.companies')}</Link>}
+        action={<Link to="/admin/companies" className="text-sm font-medium text-brand-600">{t('nav.companies')}</Link>}
       />
     )
   }
@@ -238,7 +238,7 @@ export function CompanyDetailsPage() {
               columns={requestColumns}
               rows={companyRequests}
               rowKey={(r) => r.id}
-              onRowClick={(r) => navigate(`/opportunities/${r.id}`)}
+              onRowClick={(r) => navigate(`/admin/opportunities/${r.id}`)}
               emptyState={<EmptyState title={t('companies.noRequests')} />}
             />
           </Card>
@@ -250,7 +250,7 @@ export function CompanyDetailsPage() {
               columns={workforceColumns}
               rows={workforce}
               rowKey={(d) => d.id}
-              onRowClick={(d) => navigate(`/drivers/profile/${d.id}`)}
+              onRowClick={(d) => navigate(`/admin/drivers/profile/${d.id}`)}
               emptyState={<EmptyState title={t('companies.noWorkforce')} />}
             />
           </Card>
@@ -262,7 +262,7 @@ export function CompanyDetailsPage() {
               columns={applicationColumns}
               rows={companyApplications}
               rowKey={(a) => a.id}
-              onRowClick={(a) => navigate(`/applications?open=${a.id}`)}
+              onRowClick={(a) => navigate(`/admin/applications?open=${a.id}`)}
               emptyState={<EmptyState title={t('apps.empty')} />}
             />
           </Card>

@@ -87,7 +87,7 @@ export function DashboardPage() {
           tone: 'danger',
           title: companyName(p.companyId),
           detail: `${formatMoney(p.total, locale)} · ${formatPeriod(p.period, locale)}`,
-          to: '/payments',
+          to: '/admin/payments',
         }),
       )
     requests
@@ -99,7 +99,7 @@ export function DashboardPage() {
           tone: 'warning',
           title: `${r.number} · ${companyName(r.companyId)}`,
           detail: `${formatNumber(Math.max(0, r.driversRequired - r.driversHired), locale)} ${t('opp.remaining')}`,
-          to: `/opportunities/${r.id}`,
+          to: `/admin/opportunities/${r.id}`,
           at: r.deadline,
         }),
       )
@@ -113,7 +113,7 @@ export function DashboardPage() {
           tone: 'warning',
           title: a.number,
           detail: companyName(a.companyId),
-          to: `/applications?open=${a.id}`,
+          to: `/admin/applications?open=${a.id}`,
           at: a.appliedAt,
         }),
       )
@@ -127,7 +127,7 @@ export function DashboardPage() {
           tone: 'warning',
           title: locale === 'ar' ? d.nameAr : d.name,
           detail: cityName(d.city, locale),
-          to: `/drivers/profile/${d.id}`,
+          to: `/admin/drivers/profile/${d.id}`,
           at: d.registeredAt,
         }),
       )
@@ -213,7 +213,7 @@ export function DashboardPage() {
           <ul className="divide-y divide-ink-100">
             {pipelineCounts.map(({ stage, count }) => (
               <li key={stage}>
-                <Link to={`/applications?status=${stage}`} className="block cursor-pointer px-4 py-2.5 transition-colors hover:bg-ink-50">
+                <Link to={`/admin/applications?status=${stage}`} className="block cursor-pointer px-4 py-2.5 transition-colors hover:bg-ink-50">
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <span className="text-ink-600">{t(applicationKey(stage))}</span>
                     <span className="tnum font-semibold text-ink-900">{formatNumber(count, locale)}</span>
@@ -233,10 +233,10 @@ export function DashboardPage() {
         <Card title={t('dash.companyDemand')} padded={false}>
           <ul className="divide-y divide-ink-100 text-sm">
             {[
-              { label: t('dash.companiesHiring'), value: stats.companiesHiring, to: '/companies/hiring' },
-              { label: t('dash.openPositions'), value: stats.openPositions, to: '/opportunities' },
-              { label: t('dash.filledPositions'), value: stats.filledPositions, to: '/drivers/hired' },
-              { label: t('dash.openOpportunities'), value: stats.openOpportunities, to: '/requests' },
+              { label: t('dash.companiesHiring'), value: stats.companiesHiring, to: '/admin/companies/hiring' },
+              { label: t('dash.openPositions'), value: stats.openPositions, to: '/admin/opportunities' },
+              { label: t('dash.filledPositions'), value: stats.filledPositions, to: '/admin/drivers/hired' },
+              { label: t('dash.openOpportunities'), value: stats.openOpportunities, to: '/admin/requests' },
             ].map((row) => (
               <li key={row.label}>
                 <Link to={row.to} className="flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-ink-50">
@@ -251,10 +251,10 @@ export function DashboardPage() {
         <Card title={t('dash.driverSupply')} padded={false}>
           <ul className="divide-y divide-ink-100 text-sm">
             {[
-              { label: t('dash.availableDrivers'), value: stats.available, to: '/drivers/available' },
-              { label: t('dash.hiredDrivers'), value: stats.hired, to: '/drivers/hired' },
-              { label: t('dash.pendingVerification'), value: stats.pendingVerification, to: '/drivers?status=under_review' },
-              { label: t('dash.recentlyRegistered'), value: stats.recentlyRegistered, to: '/drivers' },
+              { label: t('dash.availableDrivers'), value: stats.available, to: '/admin/drivers/available' },
+              { label: t('dash.hiredDrivers'), value: stats.hired, to: '/admin/drivers/hired' },
+              { label: t('dash.pendingVerification'), value: stats.pendingVerification, to: '/admin/drivers?status=under_review' },
+              { label: t('dash.recentlyRegistered'), value: stats.recentlyRegistered, to: '/admin/drivers' },
             ].map((row) => (
               <li key={row.label}>
                 <Link to={row.to} className="flex cursor-pointer items-center justify-between px-4 py-3 transition-colors hover:bg-ink-50">
@@ -272,7 +272,7 @@ export function DashboardPage() {
               const remaining = Math.max(0, c.driversRequired - c.driversHired)
               return (
                 <li key={c.id}>
-                  <Link to={`/companies/${c.id}`} className="group block cursor-pointer">
+                  <Link to={`/admin/companies/${c.id}`} className="group block cursor-pointer">
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="flex items-center gap-2 font-medium text-ink-800 group-hover:text-brand-700">
                         <Avatar name={c.name} size="sm" />
@@ -327,7 +327,7 @@ export function DashboardPage() {
           title={t('dash.latestApplications')}
           padded={false}
           actions={
-            <Link to="/applications" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+            <Link to="/admin/applications" className="text-xs font-medium text-brand-600 hover:text-brand-700">
               {t('dash.viewAll')}
             </Link>
           }
@@ -337,7 +337,7 @@ export function DashboardPage() {
               <li key={a.id}>
                 <button
                   className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2.5 text-start transition-colors hover:bg-brand-50/40"
-                  onClick={() => navigate(`/applications?open=${a.id}`)}
+                  onClick={() => navigate(`/admin/applications?open=${a.id}`)}
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-ink-900">

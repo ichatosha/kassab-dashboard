@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { Dispatch, ReactNode } from 'react'
 import type {
   Application, ApplicationStatus, AppNotification, Company, CompanyPayment,
-  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice,
+  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice, MotorcycleBrand,
   OpportunityEngagement, Rating, RevenuePoint, SalaryRecord, WalletTransaction,
   WorkforceRequest, WorkforceRequestStatus,
 } from '../types/domain'
@@ -46,6 +46,47 @@ export interface NewApplicationInput {
   note?: string
 }
 
+export interface NewCompanyInput {
+  name: string
+  nameAr: string
+  type: Company['type']
+  city: string
+  address: string
+  contactName: string
+  phone: string
+  email: string
+}
+
+export interface NewDriverInput {
+  name: string
+  nameAr: string
+  age: number
+  city: string
+  address: string
+  phone: string
+  brand: MotorcycleBrand
+  model: string
+  experienceYears: number
+  availability: EmploymentType
+}
+
+export interface NewRequestInput {
+  companyId: string
+  driversRequired: number
+  salary: number
+  bonuses: number
+  city: string
+  area: string
+  workingHours: string
+  workingDays: string
+  employmentType: EmploymentType
+  experienceYears: number
+  requirementKeys: string[]
+  benefitKeys: string[]
+  deadlineDays: number
+  publish: boolean
+}
+
 type Action =
   | { type: 'loaded'; data: AppData }
   | { type: 'loadError' }
@@ -61,6 +102,9 @@ type Action =
   | { type: 'viewOpportunity'; requestId: string }
   | { type: 'toggleOpportunityLike'; requestId: string }
   | { type: 'toggleOpportunitySave'; requestId: string }
+  | { type: 'addCompany'; input: NewCompanyInput; id: string }
+  | { type: 'addDriver'; input: NewDriverInput; id: string }
+  | { type: 'addRequest'; input: NewRequestInput; id: string }
 
 const initialState: AppState = {
   status: 'loading',
@@ -71,6 +115,16 @@ const initialState: AppState = {
 }
 
 const now = () => new Date().toISOString()
+
+let notificationSeq = 0
+const notify = (kind: AppNotification['kind'], body: string, bodyAr: string): AppNotification => ({
+  id: `ntf-new-${++notificationSeq}`,
+  kind,
+  body,
+  bodyAr,
+  at: now(),
+  read: false,
+})
 
 // A request's status follows from how many positions are filled, unless an
 // operator has explicitly closed or cancelled it.
@@ -314,6 +368,126 @@ function reducer(state: AppState, action: Action): AppState {
           ? state.likedOpportunities.filter((id) => id !== action.requestId)
           : [...state.likedOpportunities, action.requestId],
         engagement: bumpEngagement(state.engagement, action.requestId, { likes: liked ? -1 : 1 }),
+      }
+    }
+
+    // ── Registration and publishing ──────────────────────────────────
+    // Everything created here lands in the same shape as the seeded data,
+    // so a new company or driver behaves like any other from that moment.
+    case 'addCompany': {
+      const { input, id } = action
+      const company: Company = {
+        id,
+        code: `KSB-C${2001 + state.companies.length}`,
+        name: input.name,
+        nameAr: input.nameAr || input.name,
+        type: input.type,
+        city: input.city,
+        address: input.address,
+        contactName: input.contactName,
+        contactNameAr: input.contactName,
+        phone: input.phone,
+        email: input.email,
+        status: 'pending_review',
+        verified: false,
+        registeredAt: now(),
+        driversRequired: 0,
+        driversHired: 0,
+        monthlyWorkforceCost: 0,
+        kassabFeeRate: state.companies[0]?.kassabFeeRate ?? 0.125,
+      }
+      return {
+        ...state,
+        companies: [company, ...state.companies],
+        notifications: [notify('new_company',
+          `${input.name} registered and is awaiting review`,
+          `${input.nameAr || input.name} سجّلت وفي انتظار المراجعة`,
+        ), ...state.notifications],
+      }
+    }
+
+    case 'addDriver': {
+      const { input, id } = action
+      const driver: Driver = {
+        id,
+        code: `KSB-D${1001 + state.drivers.length}`,
+        name: input.name,
+        nameAr: input.nameAr || input.name,
+        age: input.age,
+        address: input.address,
+        city: input.city,
+        phone: input.phone,
+        motorcycle: { brand: input.brand, model: input.model },
+        status: 'available',
+        verified: false,
+        performance: {
+          rating: 0,
+          ratingCount: 0,
+          deliverySuccessRate: 0,
+          completedDeliveries: 0,
+          failedDeliveries: 0,
+          cancelledDeliveries: 0,
+          experienceYears: input.experienceYears,
+        },
+        wallet: { balance: 0, totalEarnings: 0, pendingEarnings: 0, paidEarnings: 0 },
+        availability: input.availability,
+        preferredArea: input.address,
+        registeredAt: now(),
+      }
+      return {
+        ...state,
+        drivers: [driver, ...state.drivers],
+        notifications: [notify('new_driver',
+          `${input.name} registered as a delivery driver`,
+          `${input.nameAr || input.name} سجّل كمندوب توصيل`,
+        ), ...state.notifications],
+      }
+    }
+
+    case 'addRequest': {
+      const { input, id } = action
+      const company = state.companies.find((c) => c.id === input.companyId)
+      const seq = state.requests.length + 1
+      const request: WorkforceRequest = {
+        id,
+        number: `KSS-WF-${1020 + seq}`,
+        companyId: input.companyId,
+        position: 'Motorcycle Delivery Driver',
+        positionAr: 'مندوب توصيل موتوسيكل',
+        driversRequired: input.driversRequired,
+        driversHired: 0,
+        salary: input.salary,
+        bonuses: input.bonuses,
+        city: input.city,
+        area: input.area,
+        areaAr: input.area,
+        workingHours: input.workingHours,
+        workingHoursAr: input.workingHours,
+        workingDays: input.workingDays,
+        workingDaysAr: input.workingDays,
+        employmentType: input.employmentType,
+        experienceYears: input.experienceYears,
+        requirementKeys: input.requirementKeys,
+        benefitKeys: input.benefitKeys,
+        deadline: new Date(Date.now() + input.deadlineDays * 86400000).toISOString(),
+        status: input.publish ? 'open' : 'draft',
+        createdAt: now(),
+      }
+      return {
+        ...state,
+        requests: [request, ...state.requests],
+        // The company's demand total grows with the new request
+        companies: state.companies.map((c) =>
+          c.id === input.companyId
+            ? { ...c, driversRequired: c.driversRequired + input.driversRequired }
+            : c,
+        ),
+        notifications: input.publish
+          ? [notify('new_workforce_request',
+              `${company?.name ?? 'A company'} published a request for ${input.driversRequired} drivers in ${input.city}`,
+              `${company?.nameAr ?? 'شركة'} نشرت طلب ${input.driversRequired} مندوب في ${input.city}`,
+            ), ...state.notifications]
+          : state.notifications,
       }
     }
 

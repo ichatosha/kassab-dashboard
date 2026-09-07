@@ -47,7 +47,7 @@ export function OpportunityDetailsPage() {
     return (
       <EmptyState
         title={t('notFound.title')}
-        action={<Link to="/opportunities" className="text-sm font-medium text-brand-600">{t('nav.opportunities')}</Link>}
+        action={<Link to="/admin/opportunities" className="text-sm font-medium text-brand-600">{t('nav.opportunities')}</Link>}
       />
     )
   }
@@ -171,7 +171,7 @@ export function OpportunityDetailsPage() {
                     <li key={a.id}>
                       <button
                         className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-start transition-colors hover:bg-brand-50/40"
-                        onClick={() => navigate(`/applications?open=${a.id}`)}
+                        onClick={() => navigate(`/admin/applications?open=${a.id}`)}
                       >
                         <Avatar name={d?.name ?? '—'} size="sm" />
                         <span className="min-w-0 flex-1">
@@ -205,7 +205,7 @@ export function OpportunityDetailsPage() {
                 <div className="flex items-center gap-3">
                   <Avatar name={company.name} size="lg" />
                   <div className="min-w-0">
-                    <Link to={`/companies/${company.id}`} className="block truncate text-base font-bold text-ink-950 hover:text-brand-700">
+                    <Link to={`/admin/companies/${company.id}`} className="block truncate text-base font-bold text-ink-950 hover:text-brand-700">
                       {locale === 'ar' ? company.nameAr : company.name}
                     </Link>
                     <VerifiedMark verified={company.verified} />

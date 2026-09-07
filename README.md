@@ -4,12 +4,34 @@
 Companies publish workforce requests, drivers apply, Kassab runs recruitment
 and settles salaries. Frontend-only, client-demo-ready.
 
+## Portals
+
+Three audiences, three routes. An account only ever reaches its own
+portal — anything else redirects to where that account belongs.
+
+| Route | Who | What they do |
+|---|---|---|
+| `/admin` | Kassab staff | Run recruitment, hiring and settlement |
+| `/company` | Employers | Publish workforce requests, follow candidates, pay one invoice |
+| `/delivery` | Drivers | Find work, apply, follow applications, get paid |
+
+Public: `/` (marketing), `/login`, `/register/company`, `/register/driver`.
+
 ## Demo access
 
-| | |
-|---|---|
-| Email | `admin@kassab.demo` |
-| Password | `kassab2026` |
+Every account uses the password `kassab2026`.
+
+| Email | Role | Lands on |
+|---|---|---|
+| `admin@kassab.demo` | Platform owner | `/admin` |
+| `recruiter@kassab.demo` | Recruitment admin | `/admin` |
+| `finance@kassab.demo` | Finance admin | `/admin` |
+| `support@kassab.demo` | Support agent | `/admin` |
+| `company@kassab.demo` | Company owner | `/company` |
+| `driver@kassab.demo` | Delivery driver | `/delivery` |
+
+The login page lists them all — pick one to fill the form. Registering a
+new company or driver signs you straight into that portal.
 
 ## Business model
 

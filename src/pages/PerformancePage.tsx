@@ -92,7 +92,7 @@ export function PerformancePage() {
               <li key={d.id}>
                 <button
                   className="flex w-full cursor-pointer items-center justify-between gap-2 text-start"
-                  onClick={() => navigate(`/drivers/profile/${d.id}`)}
+                  onClick={() => navigate(`/admin/drivers/profile/${d.id}`)}
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-ink-800">
                     <Avatar name={d.name} size="sm" />
@@ -114,7 +114,7 @@ export function PerformancePage() {
               <li key={d.id}>
                 <button
                   className="flex w-full cursor-pointer items-center justify-between gap-2 text-start"
-                  onClick={() => navigate(`/drivers/profile/${d.id}`)}
+                  onClick={() => navigate(`/admin/drivers/profile/${d.id}`)}
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-ink-800">
                     <Avatar name={d.name} size="sm" />
@@ -136,7 +136,7 @@ export function PerformancePage() {
           columns={columns}
           rows={ranked}
           rowKey={(d) => d.id}
-          onRowClick={(d) => navigate(`/drivers/profile/${d.id}`)}
+          onRowClick={(d) => navigate(`/admin/drivers/profile/${d.id}`)}
           stickyHeader
           emptyState={<EmptyState title={t('drivers.empty')} icon={<Gauge className="h-6 w-6" />} />}
         />

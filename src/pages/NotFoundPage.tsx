@@ -11,7 +11,7 @@ export function NotFoundPage() {
       hint={t('notFound.body')}
       icon={<Compass className="h-6 w-6" />}
       action={
-        <Link to="/dashboard" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+        <Link to="/admin/dashboard" className="text-sm font-medium text-brand-600 hover:text-brand-700">
           {t('notFound.back')}
         </Link>
       }

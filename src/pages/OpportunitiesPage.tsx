@@ -85,7 +85,7 @@ function OpportunityCard({ request }: { request: WorkforceRequest }) {
       )}
 
       <Link
-        to={`/opportunities/${request.id}`}
+        to={`/admin/opportunities/${request.id}`}
         className="mt-4 inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-800"
       >
         {t('opp.view')}

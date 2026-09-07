@@ -93,7 +93,7 @@ export function PipelinePage() {
                       <article key={a.id} className="rounded-lg border border-ink-200 bg-surface p-2.5 shadow-card">
                         <button
                           className="flex w-full cursor-pointer items-center gap-2 text-start"
-                          onClick={() => navigate(`/applications?open=${a.id}`)}
+                          onClick={() => navigate(`/admin/applications?open=${a.id}`)}
                         >
                           <Avatar name={driver?.name ?? '—'} size="sm" />
                           <span className="min-w-0 flex-1">

@@ -87,7 +87,7 @@ export function ApplicationDrawer({ application, onClose }: { application: Appli
             )}
             {driver && (
               <Link
-                to={`/drivers/profile/${driver.id}`}
+                to={`/admin/drivers/profile/${driver.id}`}
                 className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-surface px-3 text-xs font-medium text-ink-800 ring-1 ring-inset ring-ink-200 transition-colors hover:bg-ink-50"
               >
                 {t('apps.viewProfile')}
@@ -134,7 +134,7 @@ export function ApplicationDrawer({ application, onClose }: { application: Appli
               </div>
               {request && (
                 <Link
-                  to={`/opportunities/${request.id}`}
+                  to={`/admin/opportunities/${request.id}`}
                   className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
                 >
                   <Briefcase className="h-3.5 w-3.5" aria-hidden />

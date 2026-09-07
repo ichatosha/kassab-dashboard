@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Languages, LockKeyhole } from 'lucide-react'
-import { useAuth, DEMO_EMAIL, DEMO_PASSWORD } from '../store/auth'
+import { useAuth, DEMO_EMAIL, DEMO_PASSWORD, demoAccounts, homeForRole, portalForRole } from '../store/auth'
+import { accountByEmail } from '../mocks/accounts'
 import { useI18n } from '../i18n'
 import { TextField } from '../components/ui/Field'
 import { Button } from '../components/ui/Button'
@@ -11,15 +12,15 @@ import { BrandCredit } from '../components/shared/BrandCredit'
 import { ThemeToggle } from '../components/shared/ThemeToggle'
 
 export function LoginPage() {
-  const { user, signIn } = useAuth()
-  const { t, toggleLocale } = useI18n()
+  const { user, signIn, homePath } = useAuth()
+  const { t, locale, toggleLocale } = useI18n()
   const navigate = useNavigate()
   const [email, setEmail] = useState(DEMO_EMAIL)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to="/dashboard" replace />
+  if (user) return <Navigate to={homePath} replace />
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -27,8 +28,16 @@ export function LoginPage() {
     setError('')
     const ok = await signIn(email, password)
     setBusy(false)
-    if (ok) navigate('/dashboard')
+    // The account decides where it lands: staff, employer or driver
+    if (ok) navigate(homeForRole(accountByEmail(email)?.role ?? 'platform_owner'))
     else setError(t('auth.error'))
+  }
+
+  // Signing in as each role is how you see each side of the product
+  const fillAccount = (accountEmail: string) => {
+    setEmail(accountEmail)
+    setPassword(DEMO_PASSWORD)
+    setError('')
   }
 
   return (
@@ -105,18 +114,49 @@ export function LoginPage() {
           </form>
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">{t('auth.demoHint')}</p>
-            <p className="mt-1 text-xs text-amber-700">{t('auth.demoNote')}</p>
-            <dl className="mt-2 space-y-1 text-xs text-amber-700" dir="ltr">
-              <div className="flex justify-between gap-4">
-                <dt className="font-medium">Email</dt>
-                <dd className="font-mono">{DEMO_EMAIL}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className="font-medium">Password</dt>
-                <dd className="font-mono">{DEMO_PASSWORD}</dd>
-              </div>
-            </dl>
+            <p className="mt-1 text-xs text-amber-700">{t('auth.pickRole')}</p>
+            <ul className="mt-3 space-y-1.5">
+              {demoAccounts.map((account) => (
+                <li key={account.id}>
+                  <button
+                    type="button"
+                    onClick={() => fillAccount(account.email)}
+                    className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-2.5 py-2 text-start transition-colors ${
+                      email === account.email
+                        ? 'border-amber-400 bg-amber-100/60'
+                        : 'border-transparent hover:bg-amber-100/40'
+                    }`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-semibold text-amber-700">
+                        {t(`role.${account.role}` as Parameters<typeof t>[0])}
+                      </span>
+                      <span className="block truncate font-mono text-[11px] text-amber-700/80" dir="ltr">
+                        {account.email}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-amber-700/70">
+                      {t(`portal.${portalForRole(account.role)}` as Parameters<typeof t>[0])}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 border-t border-amber-200 pt-2 text-[11px] text-amber-700" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+              {t('auth.sharedPassword')}: <span className="font-mono font-semibold">{DEMO_PASSWORD}</span>
+            </p>
           </div>
+
+          <p className="mt-4 text-center text-xs text-ink-500">
+            {t('auth.noAccount')}{' '}
+            <Link to="/register/company" className="font-medium text-brand-600 hover:text-brand-700">
+              {t('auth.registerCompany')}
+            </Link>
+            {' · '}
+            <Link to="/register/driver" className="font-medium text-brand-600 hover:text-brand-700">
+              {t('auth.registerDriver')}
+            </Link>
+          </p>
           <BrandCredit className="mt-6 text-center text-[11px] text-ink-400 lg:hidden" />
         </div>
       </div>

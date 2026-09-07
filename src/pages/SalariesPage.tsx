@@ -135,7 +135,7 @@ export function SalariesPage() {
           columns={columns}
           rows={salaries}
           rowKey={(r) => r.id}
-          onRowClick={(r) => navigate(`/companies/${r.companyId}`)}
+          onRowClick={(r) => navigate(`/admin/companies/${r.companyId}`)}
           stickyHeader
           emptyState={<EmptyState title={t('salaries.empty')} icon={<Banknote className="h-6 w-6" />} />}
         />

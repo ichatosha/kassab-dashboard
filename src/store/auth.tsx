@@ -1,38 +1,39 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { AdminUser } from '../types/domain'
+import type { Account, AccountRole, Portal } from '../types/domain'
+import {
+  DEMO_PASSWORD, PORTAL_BY_ROLE, PORTAL_HOME, accountByEmail, demoAccounts,
+} from '../mocks/accounts'
 
-// Mock auth provider. The AuthService shape is what a real backend
-// implementation (JWT/session) will satisfy later.
+// Mock auth. The AuthService shape is what a real backend implementation
+// (JWT/session) will satisfy later; every account here shares one password
+// because this is a demo environment, not a security boundary.
 export const DEMO_EMAIL = 'admin@kassab.demo'
-export const DEMO_PASSWORD = 'kassab2026'
+export { DEMO_PASSWORD, demoAccounts }
 
-const DEMO_USER: AdminUser = {
-  id: 'adm-001',
-  name: 'Kassab Admin',
-  email: DEMO_EMAIL,
-  role: 'platform_owner',
-}
-
-export type AdminRole = AdminUser['role']
-
-export const ADMIN_ROLES: AdminRole[] = [
+export const ADMIN_ROLES: AccountRole[] = [
   'platform_owner', 'recruitment_admin', 'finance_admin', 'support',
 ]
 
 // Who may read how many people viewed, liked or saved an opportunity.
 // These are the numbers the platform runs on: the owner sees everything,
 // and the recruitment team needs them to judge which postings are working.
-// Finance and support staff work from the same records without them.
-export const ENGAGEMENT_ROLES: AdminRole[] = ['platform_owner', 'recruitment_admin']
+// Finance and support work from the same records without them.
+export const ENGAGEMENT_ROLES: AccountRole[] = ['platform_owner', 'recruitment_admin']
+
+export const portalForRole = (role: AccountRole): Portal => PORTAL_BY_ROLE[role]
+export const homeForRole = (role: AccountRole): string => PORTAL_HOME[portalForRole(role)]
 
 interface AuthContextValue {
-  user: AdminUser | null
+  user: Account | null
   signIn: (email: string, password: string) => Promise<boolean>
+  /** Sign in an account created during this session (registration flows) */
+  signInAs: (account: Account) => void
   signOut: () => void
-  /** Effective role. The demo lets the owner preview the other roles. */
-  role: AdminRole
-  setRole: (role: AdminRole) => void
+  role: AccountRole | null
+  portal: Portal | null
+  /** Landing route for the signed-in account, or the login page */
+  homePath: string
   canViewEngagement: boolean
 }
 
@@ -40,55 +41,71 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 const STORAGE_KEY = 'kassab.session'
 
-function readSession(): AdminUser | null {
+// Accounts registered during this session live alongside the seeded ones.
+const sessionAccounts: Account[] = []
+
+function findAccount(email: string): Account | undefined {
+  return (
+    accountByEmail(email) ??
+    sessionAccounts.find((a) => a.email.toLowerCase() === email.trim().toLowerCase())
+  )
+}
+
+function readSession(): Account | null {
   try {
-    return sessionStorage.getItem(STORAGE_KEY) === '1' ? DEMO_USER : null
+    const email = sessionStorage.getItem(STORAGE_KEY)
+    return email ? (findAccount(email) ?? null) : null
   } catch {
     return null
   }
 }
 
+function remember(account: Account | null) {
+  try {
+    if (account) sessionStorage.setItem(STORAGE_KEY, account.email)
+    else sessionStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // storage unavailable; the session simply won't survive a refresh
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AdminUser | null>(readSession)
-  // Real RBAC will come from the signed-in account. Until then the demo
-  // account is the owner and can preview what a narrower role would see.
-  const [role, setRole] = useState<AdminRole>(DEMO_USER.role)
+  const [user, setUser] = useState<Account | null>(readSession)
 
   const signIn = useCallback(async (email: string, password: string) => {
     await new Promise((r) => setTimeout(r, 600))
-    if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
-      setUser(DEMO_USER)
-      try {
-        sessionStorage.setItem(STORAGE_KEY, '1')
-      } catch {
-        // session persistence unavailable; login still works in-memory
-      }
-      return true
-    }
-    return false
+    const account = findAccount(email)
+    if (!account || password !== DEMO_PASSWORD) return false
+    setUser(account)
+    remember(account)
+    return true
+  }, [])
+
+  const signInAs = useCallback((account: Account) => {
+    sessionAccounts.push(account)
+    setUser(account)
+    remember(account)
   }, [])
 
   const signOut = useCallback(() => {
     setUser(null)
-    setRole(DEMO_USER.role)
-    try {
-      sessionStorage.removeItem(STORAGE_KEY)
-    } catch {
-      // ignore
-    }
+    remember(null)
   }, [])
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const role = user?.role ?? null
+    return {
       user,
       signIn,
+      signInAs,
       signOut,
       role,
-      setRole,
-      canViewEngagement: ENGAGEMENT_ROLES.includes(role),
-    }),
-    [user, signIn, signOut, role],
-  )
+      portal: role ? portalForRole(role) : null,
+      homePath: role ? homeForRole(role) : '/login',
+      canViewEngagement: role ? ENGAGEMENT_ROLES.includes(role) : false,
+    }
+  }, [user, signIn, signInAs, signOut])
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

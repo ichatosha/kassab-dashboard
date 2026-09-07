@@ -90,7 +90,7 @@ export function RatingsPage() {
                   <li key={r.id}>
                     <button
                       className="w-full cursor-pointer px-4 py-3 text-start transition-colors hover:bg-brand-50/40"
-                      onClick={() => navigate(`/drivers/profile/${r.driverId}`)}
+                      onClick={() => navigate(`/admin/drivers/profile/${r.driverId}`)}
                     >
                       <div className="flex flex-wrap items-center gap-2.5">
                         <Avatar name={driver?.name ?? '—'} size="sm" />

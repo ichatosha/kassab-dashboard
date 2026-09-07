@@ -38,7 +38,7 @@ export function DriverProfilePage() {
     return (
       <EmptyState
         title={t('notFound.title')}
-        action={<Link to="/drivers" className="text-sm font-medium text-brand-600">{t('nav.drivers')}</Link>}
+        action={<Link to="/admin/drivers" className="text-sm font-medium text-brand-600">{t('nav.drivers')}</Link>}
       />
     )
   }
@@ -160,8 +160,8 @@ export function DriverProfilePage() {
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between"><dt className="text-ink-500">{t('moto.type')}</dt><dd className="font-medium">{brandLabel(driver.motorcycle.brand, locale)}</dd></div>
                   <div className="flex justify-between"><dt className="text-ink-500">{t('moto.model')}</dt><dd className="font-medium">{driver.motorcycle.model}</dd></div>
-                  <div className="flex justify-between"><dt className="text-ink-500">{t('moto.plate')}</dt><dd className="font-medium" dir="rtl">{driver.motorcycle.plate}</dd></div>
-                  <div className="flex justify-between"><dt className="text-ink-500">{t('moto.year')}</dt><dd className="tnum font-medium">{driver.motorcycle.year}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ink-500">{t('moto.plate')}</dt><dd className="font-medium" dir="rtl">{driver.motorcycle.plate ?? '—'}</dd></div>
+                  <div className="flex justify-between"><dt className="text-ink-500">{t('moto.year')}</dt><dd className="tnum font-medium">{driver.motorcycle.year ?? '—'}</dd></div>
                   <div className="flex justify-between"><dt className="text-ink-500">{t('common.city')}</dt><dd className="font-medium">{cityName(driver.city, locale)}</dd></div>
                   <div className="flex justify-between"><dt className="text-ink-500">{t('drivers.registered')}</dt><dd className="tnum font-medium">{formatDate(driver.registeredAt, locale)}</dd></div>
                 </dl>
@@ -201,7 +201,7 @@ export function DriverProfilePage() {
                 <div className="flex justify-between">
                   <dt className="text-ink-500">{t('drivers.company')}</dt>
                   <dd>
-                    <Link to={`/companies/${driver.employment.companyId}`} className="font-medium text-brand-700 hover:underline">
+                    <Link to={`/admin/companies/${driver.employment.companyId}`} className="font-medium text-brand-700 hover:underline">
                       {companyName(driver.employment.companyId)}
                     </Link>
                   </dd>
@@ -241,7 +241,7 @@ export function DriverProfilePage() {
               columns={applicationColumns}
               rows={driverApplications}
               rowKey={(a) => a.id}
-              onRowClick={(a) => navigate(`/applications?open=${a.id}`)}
+              onRowClick={(a) => navigate(`/admin/applications?open=${a.id}`)}
               emptyState={<EmptyState title={t('drivers.noApplications')} />}
             />
           </Card>

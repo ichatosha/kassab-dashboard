@@ -132,7 +132,7 @@ export function CompaniesPage({ scope = 'all' }: { scope?: 'all' | 'hiring' }) {
           columns={columns}
           rows={pageRows}
           rowKey={(c) => c.id}
-          onRowClick={(c) => navigate(`/companies/${c.id}`)}
+          onRowClick={(c) => navigate(`/admin/companies/${c.id}`)}
           stickyHeader
           emptyState={
             <EmptyState

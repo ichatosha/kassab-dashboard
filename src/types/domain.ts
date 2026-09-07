@@ -11,8 +11,10 @@ export type MotorcycleBrand = 'honda' | 'yamaha' | 'bajaj' | 'sym' | 'tvs' | 'ot
 export interface Motorcycle {
   brand: MotorcycleBrand
   model: string
-  plate: string
-  year: number
+  // Collected when the driver's documents are verified, so a freshly
+  // registered driver has a brand and model and nothing else yet.
+  plate?: string
+  year?: number
 }
 
 export type DriverStatus = 'available' | 'hired' | 'under_review' | 'suspended'
@@ -276,9 +278,29 @@ export interface RevenuePoint {
   hires: number
 }
 
-export interface AdminUser {
+// ── Accounts ──────────────────────────────────────────────────────────
+// Three audiences use the platform, each behind its own portal:
+//   admin    — Kassab staff run recruitment and settlement
+//   company  — an employer publishes requests and follows its workforce
+//   delivery — a driver finds work and follows their applications
+export type Portal = 'admin' | 'company' | 'delivery'
+
+export type AccountRole =
+  | 'platform_owner'
+  | 'recruitment_admin'
+  | 'finance_admin'
+  | 'support'
+  | 'company_owner'
+  | 'driver'
+
+export interface Account {
   id: string
   name: string
+  nameAr: string
   email: string
-  role: 'platform_owner' | 'recruitment_admin' | 'finance_admin' | 'support'
+  role: AccountRole
+  /** The employer this account belongs to (company_owner only) */
+  companyId?: string
+  /** The driver this account belongs to (driver only) */
+  driverId?: string
 }

@@ -118,7 +118,7 @@ export function PayoutsPage() {
           columns={columns}
           rows={pageRows}
           rowKey={(p) => p.id}
-          onRowClick={(p) => navigate(`/drivers/profile/${p.driverId}`)}
+          onRowClick={(p) => navigate(`/admin/drivers/profile/${p.driverId}`)}
           stickyHeader
           emptyState={<EmptyState title={t('payouts.empty')} icon={<Wallet className="h-6 w-6" />} />}
         />

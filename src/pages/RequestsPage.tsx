@@ -174,7 +174,7 @@ export function RequestsPage() {
           columns={columns}
           rows={pageRows}
           rowKey={(r) => r.id}
-          onRowClick={(r) => navigate(`/opportunities/${r.id}`)}
+          onRowClick={(r) => navigate(`/admin/opportunities/${r.id}`)}
           stickyHeader
           emptyState={
             <EmptyState

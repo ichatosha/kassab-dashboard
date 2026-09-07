@@ -3,8 +3,7 @@ import { Bike, Eye, EyeOff, Info, Save } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { TranslationKey } from '../i18n'
 import { useAppState } from '../store/AppState'
-import { ADMIN_ROLES, useAuth } from '../store/auth'
-import type { AdminRole } from '../store/auth'
+import { ADMIN_ROLES, ENGAGEMENT_ROLES, useAuth } from '../store/auth'
 import { useTheme } from '../store/theme'
 import type { Theme } from '../store/theme'
 import { useToast } from '../components/ui/Toast'
@@ -21,7 +20,7 @@ const BRANDS: MotorcycleBrand[] = ['honda', 'yamaha', 'bajaj', 'sym', 'tvs', 'ot
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n()
   const { companies } = useAppState()
-  const { user, role, setRole, canViewEngagement } = useAuth()
+  const { user, role } = useAuth()
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
 
@@ -122,29 +121,34 @@ export function SettingsPage() {
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
             {t('settings.accessNote')}
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <SelectField
-                label={t('settings.viewAs')}
-                value={role}
-                onChange={(e) => setRole(e.target.value as AdminRole)}
-              >
-                {ADMIN_ROLES.map((r) => (
-                  <option key={r} value={r}>{t(`role.${r}` as TranslationKey)}</option>
-                ))}
-              </SelectField>
-              <p className="mt-1.5 text-xs text-ink-500">{t('settings.viewAsHint')}</p>
-            </div>
-            <div className="flex items-end">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${
-                  canViewEngagement ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
-                }`}
-              >
-                {canViewEngagement ? <Eye className="h-4 w-4" aria-hidden /> : <EyeOff className="h-4 w-4" aria-hidden />}
-                {canViewEngagement ? t('settings.canSeeEngagement') : t('settings.cannotSeeEngagement')}
-              </span>
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {ADMIN_ROLES.map((r) => {
+              const sees = ENGAGEMENT_ROLES.includes(r)
+              const isMe = r === role
+              return (
+                <div
+                  key={r}
+                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
+                    isMe ? 'border-brand-300 bg-brand-50' : 'border-ink-100'
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-ink-900">
+                      {t(`role.${r}` as TranslationKey)}
+                    </span>
+                    {isMe && <span className="text-xs text-brand-700">{t('settings.yourRole')}</span>}
+                  </span>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium ${
+                      sees ? 'bg-emerald-50 text-emerald-700' : 'bg-ink-100 text-ink-600'
+                    }`}
+                  >
+                    {sees ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
+                    {sees ? t('settings.canSeeEngagement') : t('settings.cannotSeeEngagement')}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </Card>
 
