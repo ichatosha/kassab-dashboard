@@ -5,14 +5,20 @@
 // bottom of this file without touching a single UI component.
 
 import type {
-  Application, AppNotification, Company, CompanyPayment, Driver,
-  DriverPayout, Invoice, OpportunityEngagement, Rating, RevenuePoint,
-  SalaryRecord, WalletTransaction, WorkforceRequest,
+  Application, AppNotification, AuditLogEntry, Company, CompanyIntegration,
+  CompanyPayment, DeliveryOrder, Driver, DriverExternalIdentity,
+  DriverLiveState, DriverPayout, Employee, IntegrationSyncLog, Invoice,
+  OpportunityEngagement, Rating, RevenuePoint, SalaryRecord,
+  WalletTransaction, WorkforceRequest,
 } from '../types/domain'
 import { mockDrivers } from '../mocks/drivers'
 import { mockCompanies, mockWorkforceRequests } from '../mocks/companies'
 import { mockApplications } from '../mocks/applications'
 import { mockEngagement } from '../mocks/engagement'
+import { mockEmployees } from '../mocks/employees'
+import { mockAuditLog } from '../mocks/audit'
+import { mockIntegrations, mockSyncLogs } from '../mocks/integrations'
+import { mockExternalIdentities, mockLiveStates, mockOrders } from '../mocks/operations'
 import { mockNotifications } from '../mocks/notifications'
 import { mockRatings } from '../mocks/ratings'
 import {
@@ -60,6 +66,23 @@ export interface NotificationService {
 export interface RatingService {
   list(): Promise<Rating[]>
 }
+export interface EmployeeService {
+  list(): Promise<Employee[]>
+}
+export interface AuditService {
+  list(): Promise<AuditLogEntry[]>
+}
+export interface IntegrationService {
+  list(): Promise<CompanyIntegration[]>
+  logs(): Promise<IntegrationSyncLog[]>
+  identities(): Promise<DriverExternalIdentity[]>
+}
+export interface OrderService {
+  list(): Promise<DeliveryOrder[]>
+}
+export interface TrackingService {
+  liveStates(): Promise<DriverLiveState[]>
+}
 
 export const driversService: DriverService = { list: () => simulate(mockDrivers) }
 export const companiesService: CompanyService = { list: () => simulate(mockCompanies) }
@@ -76,3 +99,12 @@ export const reportsService: ReportService = { revenueSeries: () => simulate(moc
 export const walletService: WalletService = { transactions: () => simulate(mockTransactions, 200) }
 export const notificationsService: NotificationService = { list: () => simulate(mockNotifications, 150) }
 export const ratingsService: RatingService = { list: () => simulate(mockRatings, 150) }
+export const employeesService: EmployeeService = { list: () => simulate(mockEmployees, 160) }
+export const auditService: AuditService = { list: () => simulate(mockAuditLog, 160) }
+export const integrationsService: IntegrationService = {
+  list: () => simulate(mockIntegrations, 200),
+  logs: () => simulate(mockSyncLogs, 200),
+  identities: () => simulate(mockExternalIdentities, 200),
+}
+export const ordersService: OrderService = { list: () => simulate(mockOrders, 240) }
+export const trackingService: TrackingService = { liveStates: () => simulate(mockLiveStates, 200) }

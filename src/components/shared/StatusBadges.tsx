@@ -2,13 +2,14 @@ import { Badge } from '../ui/Badge'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import {
-  applicationKey, applicationTone, driverKey, driverTone, invoiceKey,
-  invoiceTone, paymentKey, paymentTone, payoutKey, payoutTone, requestKey,
-  requestTone,
+  applicationKey, applicationTone, driverKey, driverTone, employeeStatusTone,
+  integrationStatusTone, invoiceKey, invoiceTone, orderStatusTone, paymentKey,
+  paymentTone, payoutKey, payoutTone, requestKey, requestTone, workStatusTone,
 } from '../../lib/status'
 import type {
-  ApplicationStatus, Company, DriverStatus, InvoiceStatus, PaymentStatus,
-  PayoutStatus, WorkforceRequestStatus,
+  ApplicationStatus, Company, DeliveryOrderStatus, DriverStatus,
+  DriverWorkStatus, EmployeeStatus, IntegrationStatus, InvoiceStatus,
+  PaymentStatus, PayoutStatus, WorkforceRequestStatus,
 } from '../../types/domain'
 
 export function ApplicationBadge({ status }: { status: ApplicationStatus }) {
@@ -59,4 +60,33 @@ export function PayoutBadge({ status }: { status: PayoutStatus }) {
 export function InvoiceBadge({ status }: { status: InvoiceStatus }) {
   const { t } = useI18n()
   return <Badge tone={invoiceTone[status]}>{t(invoiceKey(status))}</Badge>
+}
+
+export function WorkStatusBadge({ status }: { status: DriverWorkStatus }) {
+  const { t } = useI18n()
+  const live = status === 'on_delivery' || status === 'at_pickup'
+  return (
+    <Badge tone={workStatusTone[status]} dot pulse={live}>
+      {t(`workStatus.${status}` as TranslationKey)}
+    </Badge>
+  )
+}
+
+export function OrderStatusBadge({ status }: { status: DeliveryOrderStatus }) {
+  const { t } = useI18n()
+  return <Badge tone={orderStatusTone[status]}>{t(`orderStatus.${status}` as TranslationKey)}</Badge>
+}
+
+export function IntegrationStatusBadge({ status }: { status: IntegrationStatus }) {
+  const { t } = useI18n()
+  return (
+    <Badge tone={integrationStatusTone[status]} dot pulse={status === 'syncing'}>
+      {t(`intStatus.${status}` as TranslationKey)}
+    </Badge>
+  )
+}
+
+export function EmployeeStatusBadge({ status }: { status: EmployeeStatus }) {
+  const { t } = useI18n()
+  return <Badge tone={employeeStatusTone[status]}>{t(`empStatus.${status}` as TranslationKey)}</Badge>
 }

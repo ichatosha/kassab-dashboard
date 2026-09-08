@@ -1,4 +1,4 @@
-import { Bookmark, Briefcase, FileText, LayoutDashboard, UserRound, Wallet } from 'lucide-react'
+import { Bookmark, Briefcase, FileText, LayoutDashboard, Navigation, UserRound, Wallet } from 'lucide-react'
 import { PortalLayout } from './PortalLayout'
 import type { NavSection } from './Sidebar'
 import { useAppState } from '../../store/AppState'
@@ -8,18 +8,26 @@ import { OPEN_REQUEST_STATUSES } from '../../lib/status'
 // The driver's own view: find work, follow applications, get paid.
 export function DeliveryLayout() {
   const { user } = useAuth()
-  const { applications, requests, savedOpportunities, likedOpportunities } = useAppState()
+  const { applications, requests, savedOpportunities, likedOpportunities, orders, liveStates } = useAppState()
 
   const openJobs = requests.filter((r) => OPEN_REQUEST_STATUSES.includes(r.status)).length
   const myApplications = applications.filter((a) => a.driverId === user?.driverId).length
   // One badge for everything the driver kept, saved or liked
   const kept = new Set([...savedOpportunities, ...likedOpportunities]).size
+  const working = liveStates.some((l) => l.driverId === user?.driverId)
+  const activeRun = orders.filter(
+    (o) => o.driverId === user?.driverId && ['assigned', 'picked_up', 'delivering'].includes(o.status),
+  ).length
 
   const sections: NavSection[] = [
     { items: [{ to: '/delivery', labelKey: 'nav.overview', icon: <LayoutDashboard className="h-4 w-4" />, end: true }] },
     {
       labelKey: 'nav.work',
       items: [
+        // The job screen only matters once a driver is actually placed
+        ...(working
+          ? [{ to: '/delivery/work', labelKey: 'nav.myJob' as const, icon: <Navigation className="h-4 w-4" />, badge: activeRun }]
+          : []),
         { to: '/delivery/jobs', labelKey: 'nav.findJobs', icon: <Briefcase className="h-4 w-4" />, badge: openJobs, end: true },
         { to: '/delivery/saved', labelKey: 'nav.savedJobs', icon: <Bookmark className="h-4 w-4" />, badge: kept },
         { to: '/delivery/applications', labelKey: 'nav.myApplications', icon: <FileText className="h-4 w-4" />, badge: myApplications },

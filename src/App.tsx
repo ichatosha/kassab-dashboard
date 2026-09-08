@@ -10,6 +10,7 @@ import { DeliveryLayout } from './components/layout/DeliveryLayout'
 import { PageSkeleton } from './components/ui/Skeleton'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
+import { Guard } from './components/layout/Guard'
 
 // Route-level code splitting keeps the public pages small; the chart-heavy
 // admin screens load on demand.
@@ -38,6 +39,12 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ defa
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage').then((m) => ({ default: m.NotificationsPage })))
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+const EmployeesPage = lazy(() => import('./pages/admin/EmployeesPage').then((m) => ({ default: m.EmployeesPage })))
+const EmployeeDetailPage = lazy(() => import('./pages/admin/EmployeeDetailPage').then((m) => ({ default: m.EmployeeDetailPage })))
+const RolesPage = lazy(() => import('./pages/admin/RolesPage').then((m) => ({ default: m.RolesPage })))
+const AuditLogPage = lazy(() => import('./pages/admin/AuditLogPage').then((m) => ({ default: m.AuditLogPage })))
+const AdminIntegrationsPage = lazy(() => import('./pages/admin/IntegrationsPage').then((m) => ({ default: m.AdminIntegrationsPage })))
+const AdminWorkforceTrackingPage = lazy(() => import('./pages/admin/WorkforceTrackingPage').then((m) => ({ default: m.AdminWorkforceTrackingPage })))
 
 // ── Employer portal ───────────────────────────────────────────────────
 const CompanyOverviewPage = lazy(() => import('./pages/company/CompanyOverviewPage').then((m) => ({ default: m.CompanyOverviewPage })))
@@ -47,6 +54,9 @@ const CompanyApplicantsPage = lazy(() => import('./pages/company/CompanyApplican
 const CompanyDriversPage = lazy(() => import('./pages/company/CompanyDriversPage').then((m) => ({ default: m.CompanyDriversPage })))
 const CompanyBillingPage = lazy(() => import('./pages/company/CompanyBillingPage').then((m) => ({ default: m.CompanyBillingPage })))
 const CompanyProfilePage = lazy(() => import('./pages/company/CompanyProfilePage').then((m) => ({ default: m.CompanyProfilePage })))
+const CompanyIntegrationsPage = lazy(() => import('./pages/company/CompanyIntegrationsPage').then((m) => ({ default: m.CompanyIntegrationsPage })))
+const CompanyOrdersPage = lazy(() => import('./pages/company/CompanyOrdersPage').then((m) => ({ default: m.CompanyOrdersPage })))
+const CompanyTrackingPage = lazy(() => import('./pages/company/CompanyTrackingPage').then((m) => ({ default: m.CompanyTrackingPage })))
 
 // ── Driver portal ─────────────────────────────────────────────────────
 const DriverHomePage = lazy(() => import('./pages/delivery/DriverHomePage').then((m) => ({ default: m.DriverHomePage })))
@@ -56,6 +66,7 @@ const DriverSavedJobsPage = lazy(() => import('./pages/delivery/DriverSavedJobsP
 const DriverApplicationsPage = lazy(() => import('./pages/delivery/DriverApplicationsPage').then((m) => ({ default: m.DriverApplicationsPage })))
 const DriverWalletPage = lazy(() => import('./pages/delivery/DriverWalletPage').then((m) => ({ default: m.DriverWalletPage })))
 const DriverAccountPage = lazy(() => import('./pages/delivery/DriverAccountPage').then((m) => ({ default: m.DriverAccountPage })))
+const DriverWorkPage = lazy(() => import('./pages/delivery/DriverWorkPage').then((m) => ({ default: m.DriverWorkPage })))
 
 export default function App() {
   return (
@@ -90,15 +101,23 @@ export default function App() {
                     <Route path="companies/hiring" element={<CompaniesPage scope="hiring" />} />
                     <Route path="companies/:id" element={<CompanyDetailsPage />} />
 
-                    <Route path="salaries" element={<SalariesPage />} />
-                    <Route path="payments" element={<PaymentsPage />} />
-                    <Route path="payouts" element={<PayoutsPage />} />
-                    <Route path="invoices" element={<InvoicesPage />} />
-                    <Route path="revenue" element={<RevenuePage />} />
+                    <Route path="salaries" element={<Guard permission="finance.view"><SalariesPage /></Guard>} />
+                    <Route path="payments" element={<Guard permission="finance.view"><PaymentsPage /></Guard>} />
+                    <Route path="payouts" element={<Guard permission="finance.view"><PayoutsPage /></Guard>} />
+                    <Route path="invoices" element={<Guard permission="finance.view"><InvoicesPage /></Guard>} />
+                    <Route path="revenue" element={<Guard permission="finance.view"><RevenuePage /></Guard>} />
 
                     <Route path="performance" element={<PerformancePage />} />
                     <Route path="ratings" element={<RatingsPage />} />
                     <Route path="reports" element={<ReportsPage />} />
+
+                    <Route path="workforce-tracking" element={<Guard permission="workforce_tracking.view"><AdminWorkforceTrackingPage /></Guard>} />
+                    <Route path="integrations" element={<Guard permission="integrations.view"><AdminIntegrationsPage /></Guard>} />
+
+                    <Route path="employees" element={<Guard permission="employees.view"><EmployeesPage /></Guard>} />
+                    <Route path="employees/:id" element={<Guard permission="employees.view"><EmployeeDetailPage /></Guard>} />
+                    <Route path="roles" element={<Guard permission="employees.view"><RolesPage /></Guard>} />
+                    <Route path="audit-logs" element={<Guard permission="audit.view"><AuditLogPage /></Guard>} />
 
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="settings" element={<SettingsPage />} />
@@ -113,6 +132,9 @@ export default function App() {
                     <Route path="applicants" element={<CompanyApplicantsPage />} />
                     <Route path="drivers" element={<CompanyDriversPage />} />
                     <Route path="billing" element={<CompanyBillingPage />} />
+                    <Route path="integrations" element={<CompanyIntegrationsPage />} />
+                    <Route path="orders" element={<CompanyOrdersPage />} />
+                    <Route path="workforce-tracking" element={<CompanyTrackingPage />} />
                     <Route path="settings" element={<CompanyProfilePage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
@@ -124,6 +146,7 @@ export default function App() {
                     <Route path="jobs/:id" element={<DriverJobDetailsPage />} />
                     <Route path="saved" element={<DriverSavedJobsPage />} />
                     <Route path="applications" element={<DriverApplicationsPage />} />
+                    <Route path="work" element={<DriverWorkPage />} />
                     <Route path="wallet" element={<DriverWalletPage />} />
                     <Route path="profile" element={<DriverAccountPage />} />
                     <Route path="*" element={<NotFoundPage />} />

@@ -1,16 +1,23 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import type { Dispatch, ReactNode } from 'react'
 import type {
-  Application, ApplicationStatus, AppNotification, Company, CompanyPayment,
-  Driver, DriverPayout, DriverStatus, EmploymentType, Invoice, MotorcycleBrand,
-  OpportunityEngagement, Rating, RevenuePoint, SalaryRecord, WalletTransaction,
-  WorkforceRequest, WorkforceRequestStatus,
+  Application, ApplicationStatus, AppNotification, AuditAction, AuditLogEntry,
+  Company, CompanyIntegration, CompanyPayment, DeliveryOrder,
+  DeliveryOrderStatus, Driver, DriverExternalIdentity, DriverLiveState,
+  DriverPayout, DriverStatus, DriverWorkStatus, Employee, EmployeeRole,
+  EmploymentType, GeoPoint, IntegrationMethod, IntegrationSyncLog, Invoice,
+  MotorcycleBrand, OpportunityEngagement, Rating, RevenuePoint, SalaryRecord,
+  WalletTransaction, WorkforceRequest, WorkforceRequestStatus,
 } from '../types/domain'
 import {
-  applicationsService, companiesService, driversService, engagementService,
-  invoicesService, notificationsService, opportunitiesService, paymentsService,
-  ratingsService, reportsService, salariesService, walletService,
+  applicationsService, auditService, companiesService, driversService,
+  employeesService, engagementService, integrationsService, invoicesService,
+  notificationsService, opportunitiesService, ordersService, paymentsService,
+  ratingsService, reportsService, salariesService, trackingService,
+  walletService,
 } from '../services'
+import { realtime } from '../services/realtime'
+import { useAuth } from './auth'
 
 interface AppData {
   drivers: Driver[]
@@ -26,10 +33,19 @@ interface AppData {
   notifications: AppNotification[]
   ratings: Rating[]
   engagement: OpportunityEngagement[]
+  employees: Employee[]
+  auditLog: AuditLogEntry[]
+  integrations: CompanyIntegration[]
+  syncLogs: IntegrationSyncLog[]
+  externalIdentities: DriverExternalIdentity[]
+  orders: DeliveryOrder[]
+  liveStates: DriverLiveState[]
 }
 
 interface AppState extends AppData {
   status: 'loading' | 'ready' | 'error'
+  /** Who is acting right now, so sensitive changes can be attributed */
+  actor: { id: string; name: string; nameAr: string } | null
   // What this visitor has already done, so a view is counted once and the
   // like/save buttons can show their own state.
   viewedOpportunities: string[]
@@ -87,8 +103,52 @@ export interface NewRequestInput {
   publish: boolean
 }
 
+export interface NewEmployeeInput {
+  name: string
+  nameAr: string
+  username: string
+  email: string
+  phone: string
+  role: EmployeeRole
+  department: string
+}
+
+export interface NewOrderInput {
+  companyId: string
+  customerName: string
+  customerPhone: string
+  dropoffLabel: string
+  city: string
+  amount: number
+  driverId?: string
+  note?: string
+}
+
+export interface ConnectIntegrationInput {
+  companyId: string
+  providerId: string
+  method: IntegrationMethod
+  environment: 'production' | 'sandbox'
+  baseUrl?: string
+  apiKey?: string
+}
+
 type Action =
   | { type: 'loaded'; data: AppData }
+  | { type: 'setActor'; actor: AppState['actor'] }
+  | { type: 'addEmployee'; input: NewEmployeeInput; id: string }
+  | { type: 'updateEmployee'; employeeId: string; changes: Partial<Employee> }
+  | { type: 'setEmployeeStatus'; employeeId: string; status: Employee['status'] }
+  | { type: 'connectIntegration'; input: ConnectIntegrationInput; id: string }
+  | { type: 'disconnectIntegration'; integrationId: string }
+  | { type: 'syncIntegration'; integrationId: string }
+  | { type: 'testIntegration'; integrationId: string }
+  | { type: 'createOrder'; input: NewOrderInput; id: string }
+  | { type: 'assignOrder'; orderId: string; driverId: string }
+  | { type: 'setOrderStatus'; orderId: string; status: DeliveryOrderStatus }
+  | { type: 'setDriverWorkStatus'; driverId: string; status: DriverWorkStatus }
+  | { type: 'setLocationSharing'; driverId: string; sharing: boolean }
+  | { type: 'moveDrivers' }
   | { type: 'loadError' }
   | { type: 'setApplicationStatus'; applicationId: string; status: ApplicationStatus }
   | { type: 'submitApplication'; input: NewApplicationInput }
@@ -111,6 +171,9 @@ const initialState: AppState = {
   drivers: [], companies: [], requests: [], applications: [], salaries: [],
   payments: [], payouts: [], invoices: [], revenueSeries: [], transactions: [],
   notifications: [], ratings: [], engagement: [],
+  employees: [], auditLog: [], integrations: [], syncLogs: [],
+  externalIdentities: [], orders: [], liveStates: [],
+  actor: null,
   viewedOpportunities: [], likedOpportunities: [], savedOpportunities: [],
 }
 
@@ -125,6 +188,39 @@ const notify = (kind: AppNotification['kind'], body: string, bodyAr: string): Ap
   at: now(),
   read: false,
 })
+
+let auditSeq = 0
+// Every sensitive change goes through here, so the audit trail is a
+// by-product of doing the work rather than something to remember to write.
+function record(
+  state: AppState, action: AuditAction, entity: string, entityId: string,
+  entityLabel: string, entityLabelAr: string, meta?: string,
+): AuditLogEntry[] {
+  return [{
+    id: `aud-new-${++auditSeq}`,
+    actorId: state.actor?.id ?? 'system',
+    actorName: state.actor?.name ?? 'System',
+    actorNameAr: state.actor?.nameAr ?? 'النظام',
+    action, entity, entityId, entityLabel, entityLabelAr,
+    at: now(), meta,
+  }, ...state.auditLog]
+}
+
+let syncSeq = 0
+function logSync(
+  state: AppState, integrationId: string, kind: IntegrationSyncLog['kind'],
+  ok: boolean, message: string, messageAr: string, ordersReceived?: number,
+): IntegrationSyncLog[] {
+  return [{
+    id: `log-new-${++syncSeq}`,
+    integrationId, at: now(), kind, ok, message, messageAr, ordersReceived,
+  }, ...state.syncLogs]
+}
+
+const companyLabel = (state: AppState, companyId: string) =>
+  state.companies.find((c) => c.id === companyId)?.name ?? companyId
+const companyLabelAr = (state: AppState, companyId: string) =>
+  state.companies.find((c) => c.id === companyId)?.nameAr ?? companyId
 
 // A request's status follows from how many positions are filled, unless an
 // operator has explicitly closed or cancelled it.
@@ -502,6 +598,317 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
+    case 'setActor':
+      return { ...state, actor: action.actor }
+
+    // ── Kassab staff ────────────────────────────────────────────────
+    case 'addEmployee': {
+      const { input, id } = action
+      const employee: Employee = {
+        id,
+        code: `KSB-E${101 + state.employees.length}`,
+        name: input.name,
+        nameAr: input.nameAr || input.name,
+        username: input.username,
+        email: input.email,
+        phone: input.phone,
+        role: input.role,
+        department: input.department,
+        departmentAr: input.department,
+        status: 'active',
+        createdAt: now(),
+      }
+      return {
+        ...state,
+        employees: [employee, ...state.employees],
+        auditLog: record(state, 'employee.created', 'employee', id, input.name, input.nameAr || input.name),
+      }
+    }
+
+    case 'updateEmployee': {
+      const before = state.employees.find((e) => e.id === action.employeeId)
+      if (!before) return state
+      const roleChanged = action.changes.role && action.changes.role !== before.role
+      return {
+        ...state,
+        employees: state.employees.map((e) =>
+          e.id === action.employeeId ? { ...e, ...action.changes } : e,
+        ),
+        auditLog: roleChanged
+          ? record(state, 'employee.role_changed', 'employee', before.id, before.name, before.nameAr, action.changes.role)
+          : state.auditLog,
+      }
+    }
+
+    case 'setEmployeeStatus': {
+      const employee = state.employees.find((e) => e.id === action.employeeId)
+      if (!employee) return state
+      return {
+        ...state,
+        employees: state.employees.map((e) =>
+          e.id === action.employeeId ? { ...e, status: action.status } : e,
+        ),
+        auditLog: record(
+          state,
+          action.status === 'active' ? 'employee.enabled' : 'employee.disabled',
+          'employee', employee.id, employee.name, employee.nameAr,
+        ),
+      }
+    }
+
+    // ── Company integrations ────────────────────────────────────────
+    case 'connectIntegration': {
+      const { input, id } = action
+      const native = input.method === 'native'
+      const integration: CompanyIntegration = {
+        id,
+        companyId: input.companyId,
+        providerId: input.providerId,
+        method: input.method,
+        status: 'connected',
+        environment: input.environment,
+        baseUrl: input.baseUrl,
+        // The demo never keeps a key: only a masked stand-in is stored
+        maskedKey: input.apiKey ? `${input.apiKey.slice(0, 3)}_••••••${input.apiKey.slice(-4)}` : undefined,
+        webhookUrl: native ? undefined : `https://hooks.kassab.eg/v1/${input.companyId}/orders`,
+        connectedAt: now(),
+        lastSyncAt: now(),
+        ordersToday: 0,
+      }
+      const name = companyLabel(state, input.companyId)
+      const nameAr = companyLabelAr(state, input.companyId)
+      return {
+        ...state,
+        // One live integration per company
+        integrations: [
+          integration,
+          ...state.integrations.filter((i) => i.companyId !== input.companyId),
+        ],
+        syncLogs: logSync(
+          state, id, 'connect', true,
+          native ? 'Kassab tracking enabled' : 'Integration connected',
+          native ? 'تم تفعيل تتبع كساب' : 'تم ربط النظام',
+        ),
+        auditLog: record(state, 'integration.connected', 'integration', id, name, nameAr, input.providerId),
+      }
+    }
+
+    case 'disconnectIntegration': {
+      const integration = state.integrations.find((i) => i.id === action.integrationId)
+      if (!integration) return state
+      return {
+        ...state,
+        integrations: state.integrations.map((i) =>
+          i.id === action.integrationId
+            ? { ...i, status: 'disconnected' as const, lastSyncAt: undefined }
+            : i,
+        ),
+        syncLogs: logSync(state, integration.id, 'disconnect', true, 'Integration disconnected', 'تم فصل النظام'),
+        auditLog: record(
+          state, 'integration.disconnected', 'integration', integration.id,
+          companyLabel(state, integration.companyId), companyLabelAr(state, integration.companyId),
+        ),
+      }
+    }
+
+    case 'syncIntegration': {
+      const integration = state.integrations.find((i) => i.id === action.integrationId)
+      if (!integration) return state
+      const received = 3 + (state.syncLogs.length % 7)
+      return {
+        ...state,
+        integrations: state.integrations.map((i) =>
+          i.id === action.integrationId
+            ? {
+                ...i,
+                status: 'connected' as const,
+                errorMessageKey: undefined,
+                lastSyncAt: now(),
+                ordersToday: i.ordersToday + received,
+              }
+            : i,
+        ),
+        syncLogs: logSync(
+          state, integration.id, 'sync', true,
+          `Sync completed — ${received} orders received`,
+          `اكتملت المزامنة — استُلم ${received} طلبًا`,
+          received,
+        ),
+      }
+    }
+
+    case 'testIntegration': {
+      const integration = state.integrations.find((i) => i.id === action.integrationId)
+      if (!integration) return state
+      return {
+        ...state,
+        syncLogs: logSync(state, integration.id, 'test', true, 'Connection test passed', 'نجح اختبار الاتصال'),
+      }
+    }
+
+    // ── Deliveries ──────────────────────────────────────────────────
+    // A company with no system of its own creates orders here, and the
+    // driver moves them along from the Kassab driver app.
+    case 'createOrder': {
+      const { input, id } = action
+      const integration = state.integrations.find(
+        (i) => i.companyId === input.companyId && i.status !== 'disconnected',
+      )
+      const previous = state.orders.find((o) => o.companyId === input.companyId)
+      const jitter = (state.orders.length % 9) * 0.002
+      const pickup: GeoPoint = previous?.pickup ?? { lat: 30.0444, lng: 31.2357 }
+      const order: DeliveryOrder = {
+        id,
+        reference: `ORD-${10600 + state.orders.length}`,
+        companyId: input.companyId,
+        source: 'kassab',
+        integrationId: integration?.id,
+        driverId: input.driverId,
+        status: input.driverId ? 'assigned' : 'new',
+        customerName: input.customerName,
+        customerPhone: input.customerPhone,
+        pickup,
+        pickupLabel: previous?.pickupLabel ?? companyLabel(state, input.companyId),
+        pickupLabelAr: previous?.pickupLabelAr ?? companyLabelAr(state, input.companyId),
+        dropoff: { lat: pickup.lat + 0.012 + jitter, lng: pickup.lng - 0.009 - jitter },
+        dropoffLabel: input.dropoffLabel,
+        dropoffLabelAr: input.dropoffLabel,
+        city: input.city,
+        amount: input.amount,
+        createdAt: now(),
+        assignedAt: input.driverId ? now() : undefined,
+        note: input.note,
+      }
+      return {
+        ...state,
+        orders: [order, ...state.orders],
+        integrations: state.integrations.map((i) =>
+          i.id === integration?.id ? { ...i, ordersToday: i.ordersToday + 1, lastSyncAt: now() } : i,
+        ),
+        liveStates: input.driverId
+          ? state.liveStates.map((l) =>
+              l.driverId === input.driverId
+                ? { ...l, status: 'at_pickup' as const, orderId: order.id, point: pickup, updatedAt: now() }
+                : l,
+            )
+          : state.liveStates,
+        auditLog: record(state, 'order.created', 'order', id, order.reference, order.reference),
+      }
+    }
+
+    case 'assignOrder': {
+      const order = state.orders.find((o) => o.id === action.orderId)
+      if (!order) return state
+      return {
+        ...state,
+        orders: state.orders.map((o) =>
+          o.id === action.orderId
+            ? { ...o, driverId: action.driverId, status: 'assigned' as const, assignedAt: now() }
+            : o,
+        ),
+        liveStates: state.liveStates.map((l) =>
+          l.driverId === action.driverId
+            ? { ...l, status: 'at_pickup' as const, orderId: order.id, point: order.pickup, updatedAt: now() }
+            : l,
+        ),
+        auditLog: record(state, 'order.assigned', 'order', order.id, order.reference, order.reference),
+      }
+    }
+
+    case 'setOrderStatus': {
+      const order = state.orders.find((o) => o.id === action.orderId)
+      if (!order) return state
+      const done = ['delivered', 'failed', 'cancelled'].includes(action.status)
+      const updated: DeliveryOrder = {
+        ...order,
+        status: action.status,
+        pickedUpAt: action.status === 'picked_up' ? now() : order.pickedUpAt,
+        deliveredAt: action.status === 'delivered' ? now() : order.deliveredAt,
+      }
+      return {
+        ...state,
+        orders: state.orders.map((o) => (o.id === action.orderId ? updated : o)),
+        liveStates: state.liveStates.map((l) => {
+          if (l.driverId !== order.driverId) return l
+          if (done) {
+            return {
+              ...l,
+              status: 'available' as const,
+              orderId: undefined,
+              deliveriesToday: action.status === 'delivered' ? l.deliveriesToday + 1 : l.deliveriesToday,
+              updatedAt: now(),
+            }
+          }
+          const moving = action.status === 'picked_up' || action.status === 'delivering'
+          return {
+            ...l,
+            status: moving ? ('on_delivery' as const) : ('at_pickup' as const),
+            orderId: order.id,
+            updatedAt: now(),
+          }
+        }),
+        // Finishing a run counts toward the record Kassab reports on
+        drivers: action.status === 'delivered'
+          ? state.drivers.map((d) =>
+              d.id === order.driverId
+                ? {
+                    ...d,
+                    performance: {
+                      ...d.performance,
+                      completedDeliveries: d.performance.completedDeliveries + 1,
+                    },
+                  }
+                : d,
+            )
+          : state.drivers,
+      }
+    }
+
+    case 'setDriverWorkStatus':
+      return {
+        ...state,
+        liveStates: state.liveStates.map((l) =>
+          l.driverId === action.driverId
+            ? {
+                ...l,
+                status: action.status,
+                shareLocation: action.status === 'offline' ? false : l.shareLocation,
+                updatedAt: now(),
+              }
+            : l,
+        ),
+      }
+
+    case 'setLocationSharing':
+      return {
+        ...state,
+        liveStates: state.liveStates.map((l) =>
+          l.driverId === action.driverId ? { ...l, shareLocation: action.sharing, updatedAt: now() } : l,
+        ),
+      }
+
+    // One tick of the live feed: a driver on a run edges toward the customer
+    case 'moveDrivers': {
+      if (state.liveStates.length === 0) return state
+      return {
+        ...state,
+        liveStates: state.liveStates.map((l) => {
+          if (!l.shareLocation || !l.orderId) return l
+          const order = state.orders.find((o) => o.id === l.orderId)
+          if (!order) return l
+          const target = l.status === 'at_pickup' ? order.pickup : order.dropoff
+          return {
+            ...l,
+            point: {
+              lat: l.point.lat + (target.lat - l.point.lat) * 0.12,
+              lng: l.point.lng + (target.lng - l.point.lng) * 0.12,
+            },
+            updatedAt: now(),
+          }
+        }),
+      }
+    }
+
     default:
       return state
   }
@@ -515,6 +922,15 @@ const AppStateContext = createContext<AppStateContextValue | null>(null)
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
+  const { user } = useAuth()
+
+  // Who is acting, so every audited change carries a name
+  useEffect(() => {
+    dispatch({
+      type: 'setActor',
+      actor: user ? { id: user.employeeId ?? user.id, name: user.name, nameAr: user.nameAr } : null,
+    })
+  }, [user])
 
   useEffect(() => {
     let cancelled = false
@@ -523,7 +939,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         const [
           drivers, companies, requests, applications, salaries, payments,
           payouts, invoices, revenueSeries, transactions, notifications, ratings,
-          engagement,
+          engagement, employees, auditLog, integrations, syncLogs,
+          externalIdentities, orders, liveStates,
         ] = await Promise.all([
           driversService.list(),
           companiesService.list(),
@@ -538,6 +955,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           notificationsService.list(),
           ratingsService.list(),
           engagementService.list(),
+          employeesService.list(),
+          auditService.list(),
+          integrationsService.list(),
+          integrationsService.logs(),
+          integrationsService.identities(),
+          ordersService.list(),
+          trackingService.liveStates(),
         ])
         if (!cancelled) {
           dispatch({
@@ -545,7 +969,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
             data: {
               drivers, companies, requests, applications, salaries, payments,
               payouts, invoices, revenueSeries, transactions, notifications,
-              ratings, engagement,
+              ratings, engagement, employees, auditLog, integrations, syncLogs,
+              externalIdentities, orders, liveStates,
             },
           })
         }
@@ -558,6 +983,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [])
+
+  // The operations map is fed through the realtime abstraction rather than
+  // a timer inside a component, so a real socket can take this over later.
+  useEffect(() => {
+    if (state.status !== 'ready') return
+    const unsubscribe = realtime.subscribe('driver.location', () => {
+      dispatch({ type: 'moveDrivers' })
+    })
+    const timer = window.setInterval(() => {
+      realtime.publish('driver.location', { at: Date.now() })
+    }, 4000)
+    return () => {
+      unsubscribe()
+      window.clearInterval(timer)
+    }
+  }, [state.status])
 
   const value = useMemo(() => ({ ...state, dispatch }), [state])
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

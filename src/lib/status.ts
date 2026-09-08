@@ -1,5 +1,6 @@
 import type {
-  ApplicationStatus, DriverStatus, InvoiceStatus, PaymentStatus,
+  ApplicationStatus, DeliveryOrderStatus, DriverStatus, DriverWorkStatus,
+  EmployeeStatus, IntegrationStatus, InvoiceStatus, PaymentStatus,
   PayoutStatus, WorkforceRequestStatus,
 } from '../types/domain'
 import type { TranslationKey } from '../i18n'
@@ -117,3 +118,40 @@ export const chartColors = {
   grid: 'var(--chart-grid)',
   axis: 'var(--chart-axis)',
 }
+
+// ── Operations statuses ───────────────────────────────────────────────
+export const workStatusTone: Record<DriverWorkStatus, Tone> = {
+  available: 'success',
+  on_delivery: 'brand',
+  at_pickup: 'warning',
+  delayed: 'danger',
+  offline: 'neutral',
+}
+
+export const orderStatusTone: Record<DeliveryOrderStatus, Tone> = {
+  new: 'info',
+  assigned: 'violet',
+  picked_up: 'warning',
+  delivering: 'brand',
+  delivered: 'success',
+  failed: 'danger',
+  cancelled: 'neutral',
+}
+
+export const integrationStatusTone: Record<IntegrationStatus, Tone> = {
+  connected: 'success',
+  syncing: 'info',
+  error: 'danger',
+  disconnected: 'neutral',
+  not_connected: 'neutral',
+}
+
+export const employeeStatusTone: Record<EmployeeStatus, Tone> = {
+  active: 'success',
+  disabled: 'neutral',
+}
+
+// Stages a delivery moves through, in order
+export const ORDER_FLOW: DeliveryOrderStatus[] = [
+  'new', 'assigned', 'picked_up', 'delivering', 'delivered',
+]

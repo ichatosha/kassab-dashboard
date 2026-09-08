@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { Account, AccountRole, Portal } from '../types/domain'
+import type { Account, AccountRole, Permission, Portal } from '../types/domain'
+import { permissionsFor, roleCan } from '../lib/permissions'
 import {
   DEMO_PASSWORD, PORTAL_BY_ROLE, PORTAL_HOME, accountByEmail, demoAccounts,
 } from '../mocks/accounts'
@@ -12,14 +13,16 @@ export const DEMO_EMAIL = 'admin@kassab.demo'
 export { DEMO_PASSWORD, demoAccounts }
 
 export const ADMIN_ROLES: AccountRole[] = [
-  'platform_owner', 'recruitment_admin', 'finance_admin', 'support',
+  'platform_owner', 'general_manager', 'recruitment_admin', 'finance_admin', 'support',
 ]
 
 // Who may read how many people viewed, liked or saved an opportunity.
 // These are the numbers the platform runs on: the owner sees everything,
 // and the recruitment team needs them to judge which postings are working.
 // Finance and support work from the same records without them.
-export const ENGAGEMENT_ROLES: AccountRole[] = ['platform_owner', 'recruitment_admin']
+export const ENGAGEMENT_ROLES: AccountRole[] = [
+  'platform_owner', 'general_manager', 'recruitment_admin',
+]
 
 export const portalForRole = (role: AccountRole): Portal => PORTAL_BY_ROLE[role]
 export const homeForRole = (role: AccountRole): string => PORTAL_HOME[portalForRole(role)]
@@ -35,6 +38,10 @@ interface AuthContextValue {
   /** Landing route for the signed-in account, or the login page */
   homePath: string
   canViewEngagement: boolean
+  /** Everything this account may do — empty for company and driver accounts */
+  permissions: Permission[]
+  /** The only authorization check components should ever make */
+  can: (permission: Permission) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -103,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       portal: role ? portalForRole(role) : null,
       homePath: role ? homeForRole(role) : '/login',
       canViewEngagement: role ? ENGAGEMENT_ROLES.includes(role) : false,
+      permissions: permissionsFor(role),
+      can: (permission: Permission) => roleCan(role, permission),
     }
   }, [user, signIn, signInAs, signOut])
 

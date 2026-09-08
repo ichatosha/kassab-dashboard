@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, LayoutDashboard, ReceiptText, UserCheck, Users } from 'lucide-react'
+import { Building2, ClipboardList, LayoutDashboard, Package, PlugZap, Radio, ReceiptText, UserCheck, Users } from 'lucide-react'
 import { PortalLayout } from './PortalLayout'
 import type { NavSection } from './Sidebar'
 import { useAppState } from '../../store/AppState'
@@ -8,12 +8,18 @@ import { useAuth } from '../../store/auth'
 // Nothing here reaches beyond the company the account belongs to.
 export function CompanyLayout() {
   const { user } = useAuth()
-  const { applications, requests } = useAppState()
+  const { applications, requests, integrations, liveStates, orders } = useAppState()
 
   const companyId = user?.companyId
   const myRequestIds = requests.filter((r) => r.companyId === companyId).map((r) => r.id)
   const newApplicants = applications.filter(
     (a) => myRequestIds.includes(a.requestId) && ['new', 'under_review'].includes(a.status),
+  ).length
+
+  const integration = integrations.find((i) => i.companyId === companyId && i.status !== 'disconnected')
+  const working = liveStates.filter((l) => l.companyId === companyId && l.status !== 'offline').length
+  const openOrders = orders.filter(
+    (o) => o.companyId === companyId && ['new', 'assigned', 'picked_up', 'delivering'].includes(o.status),
   ).length
 
   const sections: NavSection[] = [
@@ -24,6 +30,19 @@ export function CompanyLayout() {
         { to: '/company/requests', labelKey: 'nav.myRequests', icon: <ClipboardList className="h-4 w-4" />, end: true },
         { to: '/company/applicants', labelKey: 'nav.candidates', icon: <Users className="h-4 w-4" />, badge: newApplicants },
         { to: '/company/drivers', labelKey: 'nav.myDrivers', icon: <UserCheck className="h-4 w-4" /> },
+      ],
+    },
+    {
+      labelKey: 'nav.operations',
+      items: [
+        // The order desk only exists for a company running on Kassab tracking
+        ...(integration
+          ? [{ to: '/company/orders', labelKey: 'nav.orders' as const, icon: <Package className="h-4 w-4" />, badge: openOrders }]
+          : []),
+        ...(integration
+          ? [{ to: '/company/workforce-tracking', labelKey: 'nav.workforceTracking' as const, icon: <Radio className="h-4 w-4" />, badge: working }]
+          : []),
+        { to: '/company/integrations', labelKey: 'nav.integrations', icon: <PlugZap className="h-4 w-4" /> },
       ],
     },
     {
