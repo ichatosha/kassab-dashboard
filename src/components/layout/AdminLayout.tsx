@@ -90,6 +90,19 @@ export function AdminLayout() {
     },
   ]
 
+  // The four places this role works from, in the order they matter.
+  // Anything the role cannot see is skipped, so a finance account gets a
+  // finance bar and a recruiter gets a hiring one, from one list.
+  const tabCandidates: GatedItem[] = [
+    { to: '/admin', labelKey: 'nav.dashboard', icon: <LayoutDashboard className="h-4 w-4" />, end: true },
+    { to: '/admin/applications', labelKey: 'nav.applications', icon: <FileText className="h-4 w-4" />, badge: newApplications, permission: 'applications.view' },
+    { to: '/admin/payments', labelKey: 'tab.payments', icon: <Wallet className="h-4 w-4" />, badge: overduePayments, permission: 'finance.view' },
+    { to: '/admin/drivers', labelKey: 'nav.drivers', icon: <Users className="h-4 w-4" />, end: true, permission: 'drivers.view' },
+    { to: '/admin/companies', labelKey: 'nav.companies', icon: <Building2 className="h-4 w-4" />, end: true, permission: 'companies.view' },
+    { to: '/admin/workforce-tracking', labelKey: 'tab.tracking', icon: <Radio className="h-4 w-4" />, badge: working, permission: 'workforce_tracking.view' },
+  ]
+  const tabs = tabCandidates.filter((item) => !item.permission || can(item.permission))
+
   const visible: NavSection[] = sections
     .map((section) => ({
       labelKey: section.labelKey,
@@ -97,5 +110,5 @@ export function AdminLayout() {
     }))
     .filter((section) => section.items.length > 0)
 
-  return <PortalLayout portal="admin" sections={visible} footerKey="portal.admin" />
+  return <PortalLayout portal="admin" sections={visible} tabs={tabs} footerKey="portal.admin" />
 }

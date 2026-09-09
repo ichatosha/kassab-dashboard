@@ -23,15 +23,17 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, emptyState, st
   if (rows.length === 0 && emptyState) return <>{emptyState}</>
 
   return (
-    <div className="overflow-x-auto scroll-thin">
+    <div className="relative overflow-x-auto scroll-thin">
       <table className="w-full min-w-max border-collapse text-sm">
         <thead>
-          <tr className={`border-b border-ink-200 bg-ink-50/70 ${stickyHeader ? 'sticky top-0 z-10' : ''}`}>
+          <tr className="border-b border-ink-200 bg-ink-50/70">
             {columns.map((c) => (
               <th
                 key={c.key}
                 scope="col"
-                className={`px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500 ${alignClass[c.align ?? 'start']} ${c.className ?? ''}`}
+                className={`bg-ink-50/70 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-500 ${
+                  stickyHeader ? 'sticky top-0 z-10' : ''
+                } ${alignClass[c.align ?? 'start']} ${c.className ?? ''}`}
               >
                 {c.header}
               </th>

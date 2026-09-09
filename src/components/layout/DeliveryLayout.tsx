@@ -1,6 +1,6 @@
 import { Bookmark, Briefcase, FileText, LayoutDashboard, Navigation, UserRound, Wallet } from 'lucide-react'
 import { PortalLayout } from './PortalLayout'
-import type { NavSection } from './Sidebar'
+import type { NavItem, NavSection } from './Sidebar'
 import { useAppState } from '../../store/AppState'
 import { useAuth } from '../../store/auth'
 import { OPEN_REQUEST_STATUSES } from '../../lib/status'
@@ -42,10 +42,25 @@ export function DeliveryLayout() {
     },
   ]
 
+  // A placed driver opens the app to run the delivery in front of them;
+  // one still looking opens it to find work. The bar follows that.
+  const tabs: NavItem[] = [
+    { to: '/delivery', labelKey: 'nav.overview', icon: <LayoutDashboard className="h-4 w-4" />, end: true },
+    ...(working
+      ? [{ to: '/delivery/work', labelKey: 'nav.myJob' as const, icon: <Navigation className="h-4 w-4" />, badge: activeRun }]
+      : []),
+    { to: '/delivery/jobs', labelKey: 'nav.findJobs', icon: <Briefcase className="h-4 w-4" />, badge: openJobs, end: true },
+    ...(working
+      ? []
+      : [{ to: '/delivery/saved', labelKey: 'tab.saved' as const, icon: <Bookmark className="h-4 w-4" />, badge: kept }]),
+    { to: '/delivery/applications', labelKey: 'tab.applications', icon: <FileText className="h-4 w-4" />, badge: myApplications },
+  ]
+
   return (
     <PortalLayout
       portal="delivery"
       sections={sections}
+      tabs={tabs}
       footerKey="portal.delivery"
       searchable={false}
       notifications={false}

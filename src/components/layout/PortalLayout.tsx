@@ -1,8 +1,9 @@
 import { Suspense, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import type { Portal } from '../../types/domain'
-import type { NavSection } from './Sidebar'
+import type { NavItem, NavSection } from './Sidebar'
 import { Sidebar } from './Sidebar'
+import { MobileTabBar } from './MobileTabBar'
 import { Header } from './Header'
 import { useAuth } from '../../store/auth'
 import { useAppState } from '../../store/AppState'
@@ -15,11 +16,13 @@ import type { TranslationKey } from '../../i18n'
 // signed in, and an account only ever sees its own portal — a driver who
 // lands on /admin is sent back to /delivery rather than shown an error.
 export function PortalLayout({
-  portal, sections, footerKey, searchable = true, notifications = true,
+  portal, sections, tabs, footerKey, searchable = true, notifications = true,
   settingsPath = '/admin/settings',
 }: {
   portal: Portal
   sections: NavSection[]
+  /** The handful of places this account lives in, for the phone tab bar */
+  tabs: NavItem[]
   footerKey: TranslationKey
   searchable?: boolean
   notifications?: boolean
@@ -48,7 +51,8 @@ export function PortalLayout({
           notifications={notifications}
           settingsPath={settingsPath}
         />
-        <main className="mx-auto max-w-[1400px] px-4 py-5 lg:px-6">
+        {/* The tab bar is fixed, so the page keeps room for it */}
+        <main className="mx-auto max-w-[1400px] px-4 pb-24 pt-5 lg:px-6 lg:pb-5">
           {status === 'loading' && <PageSkeleton />}
           {status === 'error' && (
             <div className="flex flex-col items-center gap-3 py-20 text-center">
@@ -66,6 +70,8 @@ export function PortalLayout({
           )}
         </main>
       </div>
+
+      <MobileTabBar tabs={tabs} onMore={() => setSidebarOpen(true)} />
     </div>
   )
 }

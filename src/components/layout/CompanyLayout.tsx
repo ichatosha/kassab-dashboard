@@ -1,6 +1,6 @@
 import { Building2, ClipboardList, LayoutDashboard, Package, PlugZap, Radio, ReceiptText, UserCheck, Users } from 'lucide-react'
 import { PortalLayout } from './PortalLayout'
-import type { NavSection } from './Sidebar'
+import type { NavItem, NavSection } from './Sidebar'
 import { useAppState } from '../../store/AppState'
 import { useAuth } from '../../store/auth'
 
@@ -55,10 +55,24 @@ export function CompanyLayout() {
     },
   ]
 
+  // An employer checks candidates and, once running on Kassab tracking,
+  // the deliveries in flight. Billing is the fourth thing they open.
+  const tabs: NavItem[] = [
+    { to: '/company', labelKey: 'nav.overview', icon: <LayoutDashboard className="h-4 w-4" />, end: true },
+    { to: '/company/applicants', labelKey: 'nav.candidates', icon: <Users className="h-4 w-4" />, badge: newApplicants },
+    ...(integration
+      ? [{ to: '/company/orders', labelKey: 'nav.orders' as const, icon: <Package className="h-4 w-4" />, badge: openOrders }]
+      : [{ to: '/company/requests', labelKey: 'tab.requests' as const, icon: <ClipboardList className="h-4 w-4" />, end: true }]),
+    ...(integration
+      ? [{ to: '/company/workforce-tracking', labelKey: 'tab.tracking' as const, icon: <Radio className="h-4 w-4" />, badge: working }]
+      : [{ to: '/company/drivers', labelKey: 'nav.myDrivers' as const, icon: <UserCheck className="h-4 w-4" /> }]),
+  ]
+
   return (
     <PortalLayout
       portal="company"
       sections={sections}
+      tabs={tabs}
       footerKey="portal.company"
       searchable={false}
       notifications={false}
