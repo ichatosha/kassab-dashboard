@@ -31,9 +31,12 @@ export function NewOrderModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
+  // On shift and not already running a delivery. An off-shift driver
+  // cannot be handed work: they would never see it, and they are not on
+  // the map for anyone to follow.
   const freeDrivers = drivers.filter((d) => {
     const live = liveStates.find((l) => l.driverId === d.id)
-    return !live || live.status === 'available' || live.status === 'offline'
+    return Boolean(live) && live!.status === 'available'
   })
 
   const submit = async (e: FormEvent) => {
@@ -122,7 +125,7 @@ export function NewOrderModal({
             label={t('orders.assignTo')}
             value={driverId}
             onChange={(e) => setDriverId(e.target.value)}
-            hint={t('orders.assignHint')}
+            hint={freeDrivers.length === 0 ? t('orders.noFreeDrivers') : t('orders.assignHint')}
           >
             <option value="">{t('orders.leaveUnassigned')}</option>
             {freeDrivers.map((d) => (

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, KeyRound, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { useAppState } from '../../store/AppState'
@@ -152,14 +152,6 @@ export function EmployeeDetailPage() {
                   }}
                 >
                   {t('emp.saveRole')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  icon={<KeyRound className="h-4 w-4" aria-hidden />}
-                  onClick={() => toast(t('emp.passwordResetSent'), 'info')}
-                >
-                  {t('emp.resetPassword')}
                 </Button>
                 <Button
                   variant={employee.status === 'active' ? 'danger' : 'success'}

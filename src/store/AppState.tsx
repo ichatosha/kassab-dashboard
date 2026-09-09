@@ -17,6 +17,11 @@ import {
   ratingsService, reportsService, salariesService, trackingService,
   walletService,
 } from '../services'
+import { cityCentre } from '../lib/geo'
+import { stepToward } from '../lib/map'
+import {
+  ACTIVE_ORDER_STATUSES, OPEN_REQUEST_STATUSES, TERMINAL_ORDER_STATUSES, canMoveOrder,
+} from '../lib/status'
 import { realtime } from '../services/realtime'
 import { useAuth } from './auth'
 
@@ -137,6 +142,7 @@ export interface ConnectIntegrationInput {
 
 type Action =
   | { type: 'loaded'; data: AppData }
+  | { type: 'setFeeRate'; rate: number }
   | { type: 'setActor'; actor: AppState['actor'] }
   | { type: 'addEmployee'; input: NewEmployeeInput; id: string }
   | { type: 'updateEmployee'; employeeId: string; changes: Partial<Employee> }
@@ -210,6 +216,16 @@ function record(
   }, ...state.auditLog]
 }
 
+// References continue from the highest one already issued, so a new
+// delivery can never reuse the number of an existing one.
+function nextOrderReference(state: AppState): string {
+  const highest = state.orders.reduce((max, o) => {
+    const n = Number(o.reference.replace(/[^0-9]/g, ''))
+    return Number.isFinite(n) && n > max ? n : max
+  }, 10600)
+  return `ORD-${highest + 1}`
+}
+
 let syncSeq = 0
 function logSync(
   state: AppState, integrationId: string, kind: IntegrationSyncLog['kind'],
@@ -225,6 +241,13 @@ const companyLabel = (state: AppState, companyId: string) =>
   state.companies.find((c) => c.id === companyId)?.name ?? companyId
 const companyLabelAr = (state: AppState, companyId: string) =>
   state.companies.find((c) => c.id === companyId)?.nameAr ?? companyId
+
+/** The delivery a driver is currently running, if any. */
+function activeOrderOf(state: AppState, driverId: string) {
+  return state.orders.find(
+    (o) => o.driverId === driverId && ACTIVE_ORDER_STATUSES.includes(o.status),
+  )
+}
 
 // A request's status follows from how many positions are filled, unless an
 // operator has explicitly closed or cancelled it.
@@ -283,8 +306,20 @@ function releaseHire(state: AppState, application: Application): AppState {
   const driver = state.drivers.find((d) => d.id === application.driverId)
   if (!request || !driver) return state
   const salary = driver.employment?.salary ?? request.salary
+  // A driver who has left the company cannot still be on its map, holding
+  // its deliveries, or linked to its payroll system.
+  const releasedOrders = state.orders.filter(
+    (o) => o.driverId === driver.id && ACTIVE_ORDER_STATUSES.includes(o.status),
+  )
   return {
     ...state,
+    orders: state.orders.map((o) =>
+      releasedOrders.some((r) => r.id === o.id)
+        ? { ...o, driverId: undefined, status: 'new' as const, assignedAt: undefined }
+        : o,
+    ),
+    liveStates: state.liveStates.filter((l) => l.driverId !== driver.id),
+    externalIdentities: state.externalIdentities.filter((x) => x.kassabDriverId !== driver.id),
     drivers: state.drivers.map((d) =>
       d.id === driver.id
         ? { ...d, status: 'available' as DriverStatus, employment: undefined, wallet: { ...d.wallet, pendingEarnings: 0, balance: 0 } }
@@ -346,6 +381,16 @@ function reducer(state: AppState, action: Action): AppState {
           a.id === action.applicationId ? { ...a, status: action.status, updatedAt: now() } : a,
         ),
       }
+      const applicant = state.drivers.find((d) => d.id === application.driverId)
+      next = {
+        ...next,
+        auditLog: record(
+          next, action.status === 'hired' ? 'candidate.hired' : 'application.updated',
+          'application', application.id,
+          applicant?.name ?? application.driverId, applicant?.nameAr ?? application.driverId,
+          action.status,
+        ),
+      }
       if (action.status === 'hired' && application.status !== 'hired') {
         next = applyHire(next, application)
       } else if (application.status === 'hired' && action.status !== 'hired') {
@@ -358,6 +403,14 @@ function reducer(state: AppState, action: Action): AppState {
       const { input } = action
       const request = state.requests.find((r) => r.id === input.requestId)
       if (!request) return state
+      // Applying twice to the same post, or to one that is no longer
+      // hiring, is not a thing the marketplace should record.
+      if (!OPEN_REQUEST_STATUSES.includes(request.status)) return state
+      const already = state.applications.some(
+        (a) => a.driverId === input.driverId && a.requestId === request.id
+          && !['rejected', 'withdrawn'].includes(a.status),
+      )
+      if (already) return state
       const seq = state.applications.length + 1
       const application: Application = {
         id: `app-new-${seq}`,
@@ -376,15 +429,24 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, applications: [application, ...state.applications] }
     }
 
-    case 'setDriverStatus':
+    case 'setDriverStatus': {
+      const target = state.drivers.find((d) => d.id === action.driverId)
+      if (!target) return state
       return {
         ...state,
         drivers: state.drivers.map((d) =>
           d.id === action.driverId
-            ? { ...d, status: action.status, verified: action.status !== 'under_review' }
+            // Verification is granted on approval and withdrawn on
+            // suspension; it is not a side effect of any status at all.
+            ? { ...d, status: action.status, verified: action.status === 'available' || action.status === 'hired' }
             : d,
         ),
+        auditLog: record(
+          state, action.status === 'suspended' ? 'driver.suspended' : 'driver.approved',
+          'driver', action.driverId, target.name, target.nameAr,
+        ),
       }
+    }
 
     case 'setCompanyStatus':
       return {
@@ -394,15 +456,38 @@ function reducer(state: AppState, action: Action): AppState {
             ? { ...c, status: action.status, verified: action.status === 'active' ? true : c.verified }
             : c,
         ),
+        auditLog: record(
+          state, action.status === 'active' ? 'company.approved' : 'company.suspended',
+          'company', action.companyId,
+          companyLabel(state, action.companyId), companyLabelAr(state, action.companyId),
+        ),
       }
 
-    case 'setRequestStatus':
+    case 'setRequestStatus': {
+      const request = state.requests.find((r) => r.id === action.requestId)
+      if (!request || request.status === action.status) return state
+      const closing = ['closed', 'cancelled'].includes(action.status)
+      const name = companyLabel(state, request.companyId)
+      const nameAr = companyLabelAr(state, request.companyId)
       return {
         ...state,
         requests: state.requests.map((r) =>
           r.id === action.requestId ? { ...r, status: action.status } : r,
         ),
+        // Nobody should be left waiting on a post that is no longer hiring
+        applications: closing
+          ? state.applications.map((a) =>
+              a.requestId === request.id && ['new', 'under_review', 'shortlisted', 'interview'].includes(a.status)
+                ? { ...a, status: 'withdrawn' as ApplicationStatus, updatedAt: now() }
+                : a,
+            )
+          : state.applications,
+        auditLog: record(
+          state, closing ? 'request.closed' : 'request.published', 'request',
+          request.id, name, nameAr, action.status,
+        ),
       }
+    }
 
     case 'markPaymentPaid': {
       const payment = state.payments.find((p) => p.id === action.paymentId)
@@ -428,16 +513,29 @@ function reducer(state: AppState, action: Action): AppState {
             ? { ...p, status: 'processing' }
             : p,
         ),
+        auditLog: record(
+          state, 'payment.recorded', 'payment', payment.id,
+          companyLabel(state, payment.companyId), companyLabelAr(state, payment.companyId),
+          payment.period,
+        ),
       }
     }
 
-    case 'markPayoutPaid':
+    case 'markPayoutPaid': {
+      const payout = state.payouts.find((p) => p.id === action.payoutId)
+      if (!payout || payout.status === 'paid') return state
+      const paidDriver = state.drivers.find((d) => d.id === payout.driverId)
       return {
         ...state,
         payouts: state.payouts.map((p) =>
           p.id === action.payoutId ? { ...p, status: 'paid', paidAt: now() } : p,
         ),
+        auditLog: record(
+          state, 'payout.recorded', 'payout', payout.id,
+          paidDriver?.name ?? payout.driverId, paidDriver?.nameAr ?? payout.driverId, payout.period,
+        ),
       }
+    }
 
     case 'markNotificationRead':
       return {
@@ -499,6 +597,10 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         companies: [company, ...state.companies],
+        auditLog: record(
+          { ...state, companies: [company, ...state.companies] },
+          'company.registered', 'company', id, company.name, company.nameAr,
+        ),
         notifications: [notify('new_company',
           `${input.name} registered and is awaiting review`,
           `${input.nameAr || input.name} سجّلت وفي انتظار المراجعة`,
@@ -537,6 +639,10 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         drivers: [driver, ...state.drivers],
+        auditLog: record(
+          { ...state, drivers: [driver, ...state.drivers] },
+          'driver.registered', 'driver', id, driver.name, driver.nameAr,
+        ),
         notifications: [notify('new_driver',
           `${input.name} registered as a delivery driver`,
           `${input.nameAr || input.name} سجّل كمندوب توصيل`,
@@ -599,6 +705,17 @@ function reducer(state: AppState, action: Action): AppState {
           ? state.savedOpportunities.filter((id) => id !== action.requestId)
           : [...state.savedOpportunities, action.requestId],
         engagement: bumpEngagement(state.engagement, action.requestId, { saves: saved ? -1 : 1 }),
+      }
+    }
+
+    // The service fee is what Kassab charges on top of a salary. Changing
+    // it changes every bill and every revenue figure derived from it, so
+    // it is stored on the companies it applies to rather than kept aside.
+    case 'setFeeRate': {
+      const rate = Math.min(1, Math.max(0, action.rate))
+      return {
+        ...state,
+        companies: state.companies.map((c) => ({ ...c, kassabFeeRate: rate })),
       }
     }
 
@@ -704,8 +821,21 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         integrations: state.integrations.map((i) =>
           i.id === action.integrationId
-            ? { ...i, status: 'disconnected' as const, lastSyncAt: undefined }
+            ? { ...i, status: 'disconnected' as const, lastSyncAt: undefined, ordersToday: 0 }
             : i,
+        ),
+        // The feed is what carried these deliveries, so they cannot go on
+        // being tracked. The drivers themselves are Kassab's placement and
+        // stay on shift — losing a feed is not the end of their day.
+        orders: state.orders.map((o) =>
+          o.companyId === integration.companyId && ACTIVE_ORDER_STATUSES.includes(o.status)
+            ? { ...o, status: 'cancelled' as const }
+            : o,
+        ),
+        liveStates: state.liveStates.map((l) =>
+          l.companyId === integration.companyId && l.status !== 'offline'
+            ? { ...l, status: 'available' as const, orderId: undefined, updatedAt: now() }
+            : l,
         ),
         syncLogs: logSync(state, integration.id, 'disconnect', true, 'Integration disconnected', 'تم فصل النظام'),
         auditLog: record(
@@ -715,38 +845,43 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
+    // A sync pulls the feed again. It reports what is there — it does not
+    // invent deliveries, and it cannot repair a connection that is broken.
     case 'syncIntegration': {
       const integration = state.integrations.find((i) => i.id === action.integrationId)
-      if (!integration) return state
-      const received = 3 + (state.syncLogs.length % 7)
+      if (!integration || integration.status === 'disconnected') return state
+      const failing = integration.status === 'error'
       return {
         ...state,
         integrations: state.integrations.map((i) =>
-          i.id === action.integrationId
-            ? {
-                ...i,
-                status: 'connected' as const,
-                errorMessageKey: undefined,
-                lastSyncAt: now(),
-                ordersToday: i.ordersToday + received,
-              }
-            : i,
+          i.id === action.integrationId ? { ...i, lastSyncAt: failing ? i.lastSyncAt : now() } : i,
         ),
         syncLogs: logSync(
-          state, integration.id, 'sync', true,
-          `Sync completed — ${received} orders received`,
-          `اكتملت المزامنة — استُلم ${received} طلبًا`,
-          received,
+          state, integration.id, 'sync', !failing,
+          failing ? 'Sync failed — connection is not healthy' : 'Sync completed — feed is up to date',
+          failing ? 'فشلت المزامنة — الاتصال غير سليم' : 'اكتملت المزامنة — البيانات محدَّثة',
         ),
+        auditLog: failing
+          ? state.auditLog
+          : record(
+            state, 'integration.synced', 'integration', integration.id,
+            companyLabel(state, integration.companyId), companyLabelAr(state, integration.companyId),
+          ),
       }
     }
 
+    // The test answers one question honestly: is this connection healthy?
     case 'testIntegration': {
       const integration = state.integrations.find((i) => i.id === action.integrationId)
       if (!integration) return state
+      const ok = integration.status === 'connected' || integration.status === 'syncing'
       return {
         ...state,
-        syncLogs: logSync(state, integration.id, 'test', true, 'Connection test passed', 'نجح اختبار الاتصال'),
+        syncLogs: logSync(
+          state, integration.id, 'test', ok,
+          ok ? 'Connection test passed' : 'Connection test failed',
+          ok ? 'نجح اختبار الاتصال' : 'فشل اختبار الاتصال',
+        ),
       }
     }
 
@@ -758,17 +893,25 @@ function reducer(state: AppState, action: Action): AppState {
       const integration = state.integrations.find(
         (i) => i.companyId === input.companyId && i.status !== 'disconnected',
       )
-      const previous = state.orders.find((o) => o.companyId === input.companyId)
+      // Assigning a driver who is mid-delivery would silently abandon the
+      // delivery they are on, so the order is created unassigned instead.
+      const driverId = input.driverId && !activeOrderOf(state, input.driverId)
+        ? input.driverId
+        : undefined
+      const previous = state.orders.find(
+        (o) => o.companyId === input.companyId && o.city === input.city,
+      )
       const jitter = (state.orders.length % 9) * 0.002
-      const pickup: GeoPoint = previous?.pickup ?? { lat: 30.0444, lng: 31.2357 }
+      // The branch sits in the city the order is for — not always Cairo
+      const pickup: GeoPoint = previous?.pickup ?? cityCentre(input.city)
       const order: DeliveryOrder = {
         id,
-        reference: `ORD-${10600 + state.orders.length}`,
+        reference: nextOrderReference(state),
         companyId: input.companyId,
         source: 'kassab',
         integrationId: integration?.id,
-        driverId: input.driverId,
-        status: input.driverId ? 'assigned' : 'new',
+        driverId,
+        status: driverId ? 'assigned' : 'new',
         customerName: input.customerName,
         customerPhone: input.customerPhone,
         pickup,
@@ -780,7 +923,7 @@ function reducer(state: AppState, action: Action): AppState {
         city: input.city,
         amount: input.amount,
         createdAt: now(),
-        assignedAt: input.driverId ? now() : undefined,
+        assignedAt: driverId ? now() : undefined,
         note: input.note,
       }
       return {
@@ -789,9 +932,9 @@ function reducer(state: AppState, action: Action): AppState {
         integrations: state.integrations.map((i) =>
           i.id === integration?.id ? { ...i, ordersToday: i.ordersToday + 1, lastSyncAt: now() } : i,
         ),
-        liveStates: input.driverId
+        liveStates: driverId
           ? state.liveStates.map((l) =>
-              l.driverId === input.driverId
+              l.driverId === driverId
                 ? { ...l, status: 'at_pickup' as const, orderId: order.id, point: pickup, updatedAt: now() }
                 : l,
             )
@@ -803,6 +946,12 @@ function reducer(state: AppState, action: Action): AppState {
     case 'assignOrder': {
       const order = state.orders.find((o) => o.id === action.orderId)
       if (!order) return state
+      // A finished delivery stays finished, and a driver runs one at a time
+      if (TERMINAL_ORDER_STATUSES.includes(order.status)) return state
+      const busy = activeOrderOf(state, action.driverId)
+      if (busy && busy.id !== order.id) return state
+      const live = state.liveStates.find((l) => l.driverId === action.driverId)
+      if (live && live.status === 'offline') return state
       return {
         ...state,
         orders: state.orders.map((o) =>
@@ -822,7 +971,10 @@ function reducer(state: AppState, action: Action): AppState {
     case 'setOrderStatus': {
       const order = state.orders.find((o) => o.id === action.orderId)
       if (!order) return state
-      const done = ['delivered', 'failed', 'cancelled'].includes(action.status)
+      // One step forward, or abandoning a live run. Nothing may reopen a
+      // finished delivery or skip a stage, so counters cannot double-count.
+      if (!canMoveOrder(order.status, action.status)) return state
+      const done = TERMINAL_ORDER_STATUSES.includes(action.status)
       const updated: DeliveryOrder = {
         ...order,
         status: action.status,
@@ -851,6 +1003,12 @@ function reducer(state: AppState, action: Action): AppState {
             updatedAt: now(),
           }
         }),
+        auditLog: done
+          ? record(
+            state, 'order.completed', 'order', order.id,
+            order.reference, order.reference, action.status,
+          )
+          : state.auditLog,
         // Finishing a run counts toward the record Kassab reports on
         drivers: action.status === 'delivered'
           ? state.drivers.map((d) =>
@@ -885,9 +1043,8 @@ function reducer(state: AppState, action: Action): AppState {
           ...state.apiCredentials.filter((c) => c.companyId !== action.companyId),
         ],
         auditLog: record(
-          state, 'integration.connected', 'api_key', action.companyId,
+          state, 'apikey.issued', 'api_key', action.companyId,
           companyLabel(state, action.companyId), companyLabelAr(state, action.companyId),
-          'api key issued',
         ),
       }
     }
@@ -897,13 +1054,15 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         apiCredentials: state.apiCredentials.filter((c) => c.companyId !== action.companyId),
         auditLog: record(
-          state, 'integration.disconnected', 'api_key', action.companyId,
+          state, 'apikey.revoked', 'api_key', action.companyId,
           companyLabel(state, action.companyId), companyLabelAr(state, action.companyId),
-          'api key revoked',
         ),
       }
 
     case 'setDriverWorkStatus':
+      // A driver cannot vanish from the map while holding a live delivery:
+      // the run has to be finished or handed back first.
+      if (action.status === 'offline' && activeOrderOf(state, action.driverId)) return state
       return {
         ...state,
         liveStates: state.liveStates.map((l) =>
@@ -936,14 +1095,7 @@ function reducer(state: AppState, action: Action): AppState {
           const order = state.orders.find((o) => o.id === l.orderId)
           if (!order) return l
           const target = l.status === 'at_pickup' ? order.pickup : order.dropoff
-          return {
-            ...l,
-            point: {
-              lat: l.point.lat + (target.lat - l.point.lat) * 0.12,
-              lng: l.point.lng + (target.lng - l.point.lng) * 0.12,
-            },
-            updatedAt: now(),
-          }
+          return { ...l, point: stepToward(l.point, target, 0.12), updatedAt: now() }
         }),
       }
     }

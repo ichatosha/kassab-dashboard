@@ -6,6 +6,7 @@ import {
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { useAppState, useLiveTracking } from '../../store/AppState'
+import { nextOrderStatus } from '../../lib/status'
 import { useAuth } from '../../store/auth'
 import { useDriverScope } from '../../hooks/usePortalScope'
 import { useLookups } from '../../hooks/useLookups'
@@ -69,12 +70,8 @@ export function DriverWorkPage() {
   }
 
   const online = live.status !== 'offline'
-  const nextStatus: DeliveryOrderStatus | null = current
-    ? current.status === 'assigned' ? 'picked_up'
-      : current.status === 'picked_up' ? 'delivering'
-      : current.status === 'delivering' ? 'delivered'
-      : null
-    : null
+  // The sequence lives in one place; this screen just reads the next step
+  const nextStatus: DeliveryOrderStatus | null = current ? nextOrderStatus(current.status) : null
 
   const advance = () => {
     if (!current || !nextStatus) return
@@ -104,6 +101,8 @@ export function DriverWorkPage() {
           <Button
             variant={online ? 'secondary' : 'success'}
             icon={<Radio className="h-4 w-4" aria-hidden />}
+            disabled={online && Boolean(current)}
+            title={online && current ? t('work.finishFirst') : undefined}
             onClick={() => {
               const next = online ? 'offline' : 'available'
               dispatch({ type: 'setDriverWorkStatus', driverId: driver.id, status: next })

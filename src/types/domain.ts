@@ -352,16 +352,19 @@ export interface Employee {
   extraPermissions?: Permission[]
 }
 
+// Every action here is written by the reducer somewhere. Nothing is
+// declared "for later" — an audit vocabulary nobody emits is a lie about
+// what the log covers.
 export type AuditAction =
   | 'employee.created' | 'employee.disabled' | 'employee.enabled' | 'employee.role_changed'
-  | 'employee.password_reset'
   | 'company.approved' | 'company.suspended' | 'company.registered'
   | 'driver.approved' | 'driver.suspended' | 'driver.registered'
   | 'application.updated' | 'candidate.hired'
   | 'request.published' | 'request.closed'
   | 'payment.recorded' | 'payout.recorded'
+  | 'apikey.issued' | 'apikey.revoked'
   | 'integration.connected' | 'integration.disconnected' | 'integration.synced'
-  | 'order.created' | 'order.assigned'
+  | 'order.created' | 'order.assigned' | 'order.completed'
 
 export interface AuditLogEntry {
   id: string

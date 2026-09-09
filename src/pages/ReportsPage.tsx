@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download, FileText } from 'lucide-react'
+import { Download } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
@@ -13,6 +13,7 @@ import { Button } from '../components/ui/Button'
 import { DataTable } from '../components/ui/DataTable'
 import type { Column } from '../components/ui/DataTable'
 import { Avatar, PageHeader, ProgressBar, RatingStars, Tabs } from '../components/ui/misc'
+import { downloadCsv, toCsv } from '../lib/csv'
 import { formatMoney, formatNumber, formatPercent, formatPeriod } from '../lib/format'
 import { chartColors, PIPELINE_STAGES, applicationKey } from '../lib/status'
 import type { Company, Driver } from '../types/domain'
@@ -59,6 +60,18 @@ export function ReportsPage() {
 
   const series = revenueSeries.map((p) => ({ ...p, label: formatPeriod(p.month, locale) }))
 
+  // One definition per table, shared by the view and the CSV export
+  const ratedDrivers = useMemo(
+    () => [...drivers]
+      .filter((d) => d.performance.rating > 0)
+      .sort((a, b) => b.performance.rating - a.performance.rating),
+    [drivers],
+  )
+  const rankedCompanies = useMemo(
+    () => [...companies].sort((a, b) => b.driversHired - a.driversHired),
+    [companies],
+  )
+
   const driverColumns: Column<Driver>[] = [
     {
       key: 'name',
@@ -99,7 +112,34 @@ export function ReportsPage() {
     { key: 'cost', header: t('companies.cost'), align: 'end', render: (c) => <span className="tnum font-medium">{formatMoney(c.monthlyWorkforceCost, locale)}</span> },
   ]
 
-  const exportToast = () => toast(t('reports.exportNote'), 'info')
+  // Exports exactly the tab that is on screen, with the labels the
+  // reader can see — not a different, invisible dataset.
+  const exportCsv = () => {
+    const name = locale === 'ar' ? 'nameAr' : 'name'
+    const sets: Record<string, { headers: string[]; rows: (string | number)[][] }> = {
+      hiring: {
+        headers: [t('common.status'), t('common.total')],
+        rows: byStage.map((s) => [s.label, s.count]),
+      },
+      drivers: {
+        headers: [t('drivers.name'), t('common.rating'), t('drivers.successRate'), t('drivers.completedDeliveries')],
+        rows: ratedDrivers.map((d) => [
+          d[name], d.performance.rating, d.performance.deliverySuccessRate, d.performance.completedDeliveries,
+        ]),
+      },
+      companies: {
+        headers: [t('companies.name'), t('companies.hired'), t('companies.required'), t('companies.cost')],
+        rows: rankedCompanies.map((c) => [c[name], c.driversHired, c.driversRequired, c.monthlyWorkforceCost]),
+      },
+      financial: {
+        headers: [t('salaries.period'), t('revenue.salaryVolume'), t('revenue.companyPayments'), t('revenue.title')],
+        rows: series.map((p) => [p.label, p.salaryVolume, p.companyPayments, p.kassabRevenue]),
+      },
+    }
+    const set = sets[tab] ?? sets.hiring
+    downloadCsv(`kassab-${tab}-${new Date().toISOString().slice(0, 10)}`, toCsv(set.headers, set.rows))
+    toast(t('reports.exported'))
+  }
 
   return (
     <div className="animate-fade-in">
@@ -107,14 +147,9 @@ export function ReportsPage() {
         title={t('reports.title')}
         subtitle={t('reports.subtitle')}
         actions={
-          <>
-            <Button variant="secondary" size="sm" icon={<Download className="h-4 w-4" aria-hidden />} onClick={exportToast}>
-              {t('reports.exportCsv')}
-            </Button>
-            <Button variant="secondary" size="sm" icon={<FileText className="h-4 w-4" aria-hidden />} onClick={exportToast}>
-              {t('reports.exportPdf')}
-            </Button>
-          </>
+          <Button variant="secondary" size="sm" icon={<Download className="h-4 w-4" aria-hidden />} onClick={exportCsv}>
+            {t('reports.exportCsv')}
+          </Button>
         }
       />
 
@@ -164,7 +199,7 @@ export function ReportsPage() {
             <Card title={t('reports.topDrivers')} padded={false}>
               <DataTable
                 columns={driverColumns}
-                rows={[...drivers].filter((d) => d.performance.rating > 0).sort((a, b) => b.performance.rating - a.performance.rating)}
+                rows={ratedDrivers}
                 rowKey={(d) => d.id}
               />
             </Card>
@@ -175,7 +210,7 @@ export function ReportsPage() {
           <Card title={t('reports.topCompanies')} padded={false}>
             <DataTable
               columns={companyColumns}
-              rows={[...companies].sort((a, b) => b.driversHired - a.driversHired)}
+              rows={rankedCompanies}
               rowKey={(c) => c.id}
             />
           </Card>

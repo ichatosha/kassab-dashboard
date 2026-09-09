@@ -35,13 +35,6 @@ export function formatDateTime(iso: string, locale: Locale): string {
   }).format(new Date(iso))
 }
 
-export function formatTime(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(localeTag(locale), {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(iso))
-}
-
 // "2026-08" → "Aug 2026" / "أغسطس ٢٠٢٦"
 export function formatPeriod(period: string, locale: Locale): string {
   const [year, month] = period.split('-').map(Number)

@@ -151,7 +151,31 @@ export const employeeStatusTone: Record<EmployeeStatus, Tone> = {
   disabled: 'neutral',
 }
 
-// Stages a delivery moves through, in order
+// Stages a delivery moves through, in order. This is the only definition
+// of the sequence: the driver screen reads the next step from it, and the
+// store refuses any transition that does not follow it.
 export const ORDER_FLOW: DeliveryOrderStatus[] = [
   'new', 'assigned', 'picked_up', 'delivering', 'delivered',
 ]
+
+/** A delivery that is over: nothing may move it again. */
+export const TERMINAL_ORDER_STATUSES: DeliveryOrderStatus[] = ['delivered', 'failed', 'cancelled']
+
+/** A delivery still occupying a driver. */
+export const ACTIVE_ORDER_STATUSES: DeliveryOrderStatus[] = [
+  'assigned', 'picked_up', 'delivering',
+]
+
+/** The one status a delivery may move to next, or null when it is done. */
+export function nextOrderStatus(status: DeliveryOrderStatus): DeliveryOrderStatus | null {
+  const i = ORDER_FLOW.indexOf(status)
+  if (i < 0 || i === ORDER_FLOW.length - 1) return null
+  return ORDER_FLOW[i + 1]
+}
+
+/** Forward one step, or abandoning a live delivery. Nothing else. */
+export function canMoveOrder(from: DeliveryOrderStatus, to: DeliveryOrderStatus): boolean {
+  if (TERMINAL_ORDER_STATUSES.includes(from)) return false
+  if (to === 'failed' || to === 'cancelled') return true
+  return nextOrderStatus(from) === to
+}

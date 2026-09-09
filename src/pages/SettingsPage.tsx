@@ -10,7 +10,7 @@ import { useToast } from '../components/ui/Toast'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
-import { SelectField, TextField, ToggleField } from '../components/ui/Field'
+import { SelectField, TextField } from '../components/ui/Field'
 import { PageHeader } from '../components/ui/misc'
 import { brandLabel, cityName, EGYPT_CITIES } from '../lib/geo'
 import type { MotorcycleBrand } from '../types/domain'
@@ -19,18 +19,16 @@ const BRANDS: MotorcycleBrand[] = ['honda', 'yamaha', 'bajaj', 'sym', 'tvs', 'ot
 
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n()
-  const { companies } = useAppState()
+  const { companies, dispatch } = useAppState()
   const { user, role } = useAuth()
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
 
-  const [platformName, setPlatformName] = useState('Kassab Logistics Services')
-  const [supportPhone, setSupportPhone] = useState('+20 2 19919')
-  const [notifApplications, setNotifApplications] = useState(true)
-  const [notifRequests, setNotifRequests] = useState(true)
-  const [notifPayments, setNotifPayments] = useState(true)
-  const [feeRate, setFeeRate] = useState(Math.round((companies[0]?.kassabFeeRate ?? 0.125) * 100 * 10) / 10)
-  const [referenceSalary, setReferenceSalary] = useState(8000)
+  // The fee rate is the one setting on this page that changes what the
+  // rest of the platform calculates, so it is the one that can be saved.
+  const currentRate = Math.round((companies[0]?.kassabFeeRate ?? 0.125) * 100 * 10) / 10
+  const [feeRate, setFeeRate] = useState(currentRate)
+  const dirty = feeRate !== currentRate
 
   return (
     <div className="animate-fade-in">
@@ -38,20 +36,19 @@ export function SettingsPage() {
         title={t('settings.title')}
         subtitle={t('settings.subtitle')}
         actions={
-          <Button icon={<Save className="h-4 w-4" aria-hidden />} onClick={() => toast(t('common.saved'))}>
+          <Button
+            icon={<Save className="h-4 w-4" aria-hidden />}
+            disabled={!dirty || feeRate < 0 || feeRate > 100}
+            onClick={() => {
+              dispatch({ type: 'setFeeRate', rate: feeRate / 100 })
+              toast(t('settings.feeSaved'))
+            }}
+          >
             {t('common.save')}
           </Button>
         }
       />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title={t('settings.general')}>
-          <div className="space-y-4">
-            <TextField label={t('settings.platformName')} value={platformName} onChange={(e) => setPlatformName(e.target.value)} />
-            <TextField label={t('settings.supportPhone')} value={supportPhone} onChange={(e) => setSupportPhone(e.target.value)} dir="ltr" />
-            <TextField label={t('settings.currency')} value="EGP — Egyptian Pound" disabled />
-          </div>
-        </Card>
-
         <Card title={t('settings.language')}>
           <div className="space-y-4">
             <SelectField label={t('settings.langChoice')} value={locale} onChange={(e) => setLocale(e.target.value as 'en' | 'ar')}>
@@ -65,32 +62,17 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <Card title={t('settings.notifications')}>
-          <ToggleField label={t('settings.notifApplications')} checked={notifApplications} onChange={setNotifApplications} />
-          <ToggleField label={t('settings.notifRequests')} checked={notifRequests} onChange={setNotifRequests} />
-          <ToggleField label={t('settings.notifPayments')} checked={notifPayments} onChange={setNotifPayments} />
-        </Card>
-
         <Card title={t('settings.feeDefaults')}>
-          <div className="space-y-4">
-            <TextField
-              label={t('settings.feeRate')}
-              type="number"
-              min={0}
-              max={100}
-              step={0.5}
-              value={feeRate}
-              onChange={(e) => setFeeRate(Number(e.target.value))}
-            />
-            <TextField
-              label={t('settings.defaultSalary')}
-              type="number"
-              min={0}
-              step={100}
-              value={referenceSalary}
-              onChange={(e) => setReferenceSalary(Number(e.target.value))}
-            />
-          </div>
+          <TextField
+            label={t('settings.feeRate')}
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            value={feeRate}
+            onChange={(e) => setFeeRate(Number(e.target.value))}
+            hint={t('settings.feeRateHint')}
+          />
         </Card>
 
         <Card title={t('settings.motorcycles')}>

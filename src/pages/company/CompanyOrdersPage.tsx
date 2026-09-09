@@ -56,7 +56,7 @@ export function CompanyOrdersPage() {
 
   const availableDrivers = drivers.filter((d) => {
     const live = liveStates.find((l) => l.driverId === d.id)
-    return !live || live.status === 'available' || live.status === 'offline'
+    return Boolean(live) && live!.status === 'available'
   })
 
   if (!company) return <EmptyState title={t('notFound.title')} />
@@ -136,7 +136,10 @@ export function CompanyOrdersPage() {
       header: '',
       align: 'end',
       render: (o) => {
-        if (o.status !== 'new' || availableDrivers.length === 0) return null
+        if (o.status !== 'new') return null
+        if (availableDrivers.length === 0) {
+          return <span className="text-xs text-ink-400">{t('orders.noFreeDrivers')}</span>
+        }
         return (
           <span onClick={(e) => e.stopPropagation()}>
             <SelectField
