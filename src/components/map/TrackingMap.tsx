@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
+import { Crosshair, Minus, Plus } from 'lucide-react'
 import type { DeliveryOrder, DriverLiveState, GeoPoint } from '../../types/domain'
 import { MAX_ZOOM, MIN_ZOOM, TILE_SIZE, centreOf, tileMapProvider, zoomToFit } from '../../lib/map'
 import type { MapProvider } from '../../lib/map'
 import { splitAt } from '../../lib/route'
 import type { RouteLeg } from '../../lib/route'
+import { useMapGestures } from './useMapGestures'
 import { useI18n } from '../../i18n'
 
 // ── Tracking map ──────────────────────────────────────────────────────
@@ -13,6 +14,9 @@ import { useI18n } from '../../i18n'
 // config change (VITE_MAP_TILE_URL) rather than a rewrite. Positions are
 // placed from the container centre with calc(), so the map needs no
 // measurement pass and cannot land in the wrong place on first paint.
+//
+// The view follows the drivers on its own until someone drags or zooms;
+// from then on it stays where they put it, and a button hands it back.
 
 const STATUS_COLOR: Record<DriverLiveState['status'], string> = {
   on_delivery: 'bg-brand-600',
@@ -21,10 +25,6 @@ const STATUS_COLOR: Record<DriverLiveState['status'], string> = {
   delayed: 'bg-red-600',
   offline: 'bg-ink-400',
 }
-
-// Enough tiles to cover the largest panel the map is used in
-const COLS = 5
-const ROWS = 4
 
 export function TrackingMap({
   states, orders, routes, selectedId, onSelect, city,
@@ -41,12 +41,12 @@ export function TrackingMap({
   className?: string
 }) {
   const { t } = useI18n()
-  const [zoomChoice, setZoomChoice] = useState<number | null>(null)
   const frame = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
 
-  // Measured once and on resize, and used for one thing only: picking a
-  // zoom that fits the trip. Marker placement still needs no measurement.
+  // Measured on resize, and used for two things: choosing a zoom that
+  // fits the trip, and covering the viewport with tiles when it is
+  // dragged. Marker placement still needs no measurement.
   useEffect(() => {
     const element = frame.current
     if (!element) return
@@ -82,9 +82,7 @@ export function TrackingMap({
     return zoomToFit(span, size.width, size.height, provider)
   }, [selected, selectedOrder, leg, size.width, size.height, provider, base.zoom])
 
-  const zoom = zoomChoice ?? fitted
-
-  const centre: GeoPoint = useMemo(() => {
+  const autoCentre: GeoPoint = useMemo(() => {
     if (selected && selectedOrder) {
       // Frame the whole road, so a long trip is not half off-screen
       const span = leg?.points.length
@@ -94,6 +92,9 @@ export function TrackingMap({
     }
     return centreOf(visible.map((s) => s.point)) ?? base.centre
   }, [selected, selectedOrder, leg, visible, base.centre])
+
+  const map = useMapGestures({ frame, provider, autoCentre, autoZoom: fitted })
+  const { centre, zoom } = map.view
 
   const centrePx = provider.toWorldPixels(centre, zoom)
 
@@ -131,8 +132,13 @@ export function TrackingMap({
     const max = 2 ** zoom
     const out: { key: string; url: string; dx: number; dy: number }[] = []
 
-    for (let i = -Math.floor(COLS / 2); i <= Math.floor(COLS / 2); i++) {
-      for (let j = -Math.floor(ROWS / 2); j <= Math.floor(ROWS / 2); j++) {
+    // Cover the measured viewport with a tile of margin on every side, so
+    // a drag never reaches the edge of what has been drawn
+    const cols = Math.ceil((size.width || 640) / TILE_SIZE) + 2
+    const rows = Math.ceil((size.height || 384) / TILE_SIZE) + 2
+
+    for (let i = -Math.ceil(cols / 2); i <= Math.ceil(cols / 2); i++) {
+      for (let j = -Math.ceil(rows / 2); j <= Math.ceil(rows / 2); j++) {
         const tx = centreTileX + i
         const ty = centreTileY + j
         if (ty < 0 || ty >= max) continue
@@ -146,12 +152,15 @@ export function TrackingMap({
       }
     }
     return out
-  }, [centrePx.x, centrePx.y, zoom, provider])
+  }, [centrePx.x, centrePx.y, zoom, provider, size.width, size.height])
 
   return (
     <div
       ref={frame}
-      className={`relative overflow-hidden rounded-xl border border-ink-200 bg-ink-100 ${className}`}
+      {...map.handlers}
+      className={`relative touch-none select-none overflow-hidden rounded-xl border border-ink-200 bg-ink-100 ${
+        map.dragging ? 'cursor-grabbing' : 'cursor-grab'
+      } ${className}`}
     >
       {/* Tile layer. Dark mode darkens the imagery so markers stay readable */}
       <div
@@ -165,7 +174,8 @@ export function TrackingMap({
             alt=""
             width={TILE_SIZE}
             height={TILE_SIZE}
-            className="absolute max-w-none select-none"
+            draggable={false}
+            className="pointer-events-none absolute max-w-none select-none"
             style={{
               left: `calc(50% + ${tile.dx}px)`,
               top: `calc(50% + ${tile.dy}px)`,
@@ -225,7 +235,12 @@ export function TrackingMap({
         return (
           <button
             key={state.driverId}
-            onClick={() => onSelect(state.driverId)}
+            onClick={() => {
+              // The press that ends a drag lands on whatever is under the
+              // finger; it should move the map, not change the selection.
+              if (map.consumedDrag()) return
+              onSelect(state.driverId)
+            }}
             aria-label={`${state.driverId} — ${t(`workStatus.${state.status}` as Parameters<typeof t>[0])}`}
             aria-pressed={isSelected}
             className="absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full p-1 transition-transform hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
@@ -251,24 +266,37 @@ export function TrackingMap({
         )
       })}
 
-      {/* Zoom */}
-      <div className="absolute end-2 top-2 z-20 flex flex-col overflow-hidden rounded-lg border border-ink-200 bg-surface shadow-card">
-        <button
-          onClick={() => setZoomChoice(Math.min(MAX_ZOOM, zoom + 1))}
-          disabled={zoom >= MAX_ZOOM}
-          aria-label={t('track.zoomIn')}
-          className="cursor-pointer p-1.5 text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-        </button>
-        <button
-          onClick={() => setZoomChoice(Math.max(MIN_ZOOM, zoom - 1))}
-          disabled={zoom <= MIN_ZOOM}
-          aria-label={t('track.zoomOut')}
-          className="cursor-pointer border-t border-ink-200 p-1.5 text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Minus className="h-4 w-4" aria-hidden />
-        </button>
+      {/* Zoom, and the way back to following the drivers */}
+      <div className="absolute end-2 top-2 z-20 flex flex-col gap-2">
+        <div className="flex flex-col overflow-hidden rounded-lg border border-ink-200 bg-surface shadow-card">
+          <button
+            onClick={() => map.zoomBy(1)}
+            disabled={zoom >= MAX_ZOOM}
+            aria-label={t('track.zoomIn')}
+            className="cursor-pointer p-1.5 text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            onClick={() => map.zoomBy(-1)}
+            disabled={zoom <= MIN_ZOOM}
+            aria-label={t('track.zoomOut')}
+            className="cursor-pointer border-t border-ink-200 p-1.5 text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Minus className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        {map.moved && (
+          <button
+            onClick={map.reset}
+            title={t('track.recentre')}
+            aria-label={t('track.recentre')}
+            className="cursor-pointer rounded-lg border border-ink-200 bg-surface p-1.5 text-brand-600 shadow-card transition-colors hover:bg-ink-50"
+          >
+            <Crosshair className="h-4 w-4" aria-hidden />
+          </button>
+        )}
       </div>
 
       {/* Say so when no router answered, rather than passing a straight
@@ -290,7 +318,7 @@ export function TrackingMap({
       </a>
 
       {visible.length === 0 && (
-        <p className="absolute inset-0 z-20 flex items-center justify-center bg-surface/70 px-6 text-center text-sm text-ink-600">
+        <p className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-surface/70 px-6 text-center text-sm text-ink-600">
           {t('track.noDriversHere')}
         </p>
       )}

@@ -23,6 +23,8 @@ export interface MapProvider {
   tileUrl(zoom: number, x: number, y: number): string
   /** Coordinate to absolute pixel position at this zoom */
   toWorldPixels(point: GeoPoint, zoom: number): { x: number; y: number }
+  /** The inverse, so a dragged viewport can be turned back into a place */
+  toGeoPoint(pixels: { x: number; y: number }, zoom: number): GeoPoint
   defaultView(city: string): MapView
 }
 
@@ -57,10 +59,21 @@ export const tileMapProvider: MapProvider = {
     return { x, y }
   },
 
+  toGeoPoint(pixels, zoom) {
+    const scale = TILE_SIZE * 2 ** zoom
+    const lng = (pixels.x / scale) * 360 - 180
+    const n = Math.PI - 2 * Math.PI * (pixels.y / scale)
+    const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)))
+    return { lat, lng }
+  },
+
   defaultView(city) {
     return { centre: cityCentre(city), zoom: 13 }
   },
 }
+
+/** Mercator runs out here; a viewport must not be dragged past it. */
+export const MAX_LATITUDE = 85.05112878
 
 export const MIN_ZOOM = 11
 export const MAX_ZOOM = 17

@@ -1100,6 +1100,7 @@ export const ar: Record<TranslationKey, string> = {
   'track.pickup': 'الاستلام',
   'track.dropoff': 'العميل',
   'track.arriving': 'يقترب من العميل',
+  'track.recentre': 'العودة إلى المناديب',
   'track.zoomIn': 'تكبير',
   'track.zoomOut': 'تصغير',
   'track.kmAway': 'كم للوصول',

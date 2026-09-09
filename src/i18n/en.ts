@@ -1141,6 +1141,7 @@ export const en = {
   'track.pickup': 'Pickup',
   'track.dropoff': 'Customer',
   'track.arriving': 'Arriving now',
+  'track.recentre': 'Back to the drivers',
   'track.zoomIn': 'Zoom in',
   'track.zoomOut': 'Zoom out',
   'track.kmAway': 'km away',
