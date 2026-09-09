@@ -18,7 +18,8 @@ import {
   walletService,
 } from '../services'
 import { cityCentre } from '../lib/geo'
-import { stepToward } from '../lib/map'
+import { advanceAlong, snapToPath } from '../lib/route'
+import type { RouteLeg } from '../lib/route'
 import {
   ACTIVE_ORDER_STATUSES, OPEN_REQUEST_STATUSES, TERMINAL_ORDER_STATUSES, canMoveOrder,
 } from '../lib/status'
@@ -58,6 +59,8 @@ interface AppState extends AppData {
   viewedOpportunities: string[]
   likedOpportunities: string[]
   savedOpportunities: string[]
+  /** Road geometry per delivery, once a router has answered for it */
+  routes: Record<string, RouteLeg>
 }
 
 export interface NewApplicationInput {
@@ -142,6 +145,8 @@ export interface ConnectIntegrationInput {
 
 type Action =
   | { type: 'loaded'; data: AppData }
+  | { type: 'setOrderRoute'; orderId: string; leg: RouteLeg }
+  | { type: 'reportDriverPosition'; driverId: string; point: GeoPoint; accuracyM?: number }
   | { type: 'setFeeRate'; rate: number }
   | { type: 'setActor'; actor: AppState['actor'] }
   | { type: 'addEmployee'; input: NewEmployeeInput; id: string }
@@ -185,6 +190,7 @@ const initialState: AppState = {
   externalIdentities: [], orders: [], liveStates: [], apiCredentials: [],
   actor: null,
   viewedOpportunities: [], likedOpportunities: [], savedOpportunities: [],
+  routes: {},
 }
 
 const now = () => new Date().toISOString()
@@ -711,6 +717,42 @@ function reducer(state: AppState, action: Action): AppState {
     // The service fee is what Kassab charges on top of a salary. Changing
     // it changes every bill and every revenue figure derived from it, so
     // it is stored on the companies it applies to rather than kept aside.
+    // The road a delivery follows, fetched once and then reused
+    case 'setOrderRoute': {
+      if (state.routes[action.orderId]) return state
+      return {
+        ...state,
+        routes: { ...state.routes, [action.orderId]: action.leg },
+        // Seeded positions are estimates that sit between streets. Once the
+        // real road is known, the driver belongs on it.
+        liveStates: state.liveStates.map((l) => {
+          if (l.orderId !== action.orderId || l.source === 'gps') return l
+          const snapped = snapToPath(action.leg.points, l.point)
+          return { ...l, point: snapped.point, routeIndex: snapped.index }
+        }),
+      }
+    }
+
+    // A real position from the driver's own device. It overrides the
+    // simulated feed for that driver, and resets their place on the road
+    // so the next simulated step continues from where they actually are.
+    case 'reportDriverPosition':
+      return {
+        ...state,
+        liveStates: state.liveStates.map((l) =>
+          l.driverId === action.driverId
+            ? {
+                ...l,
+                point: action.point,
+                accuracyM: action.accuracyM,
+                source: 'gps' as const,
+                routeIndex: 0,
+                updatedAt: now(),
+              }
+            : l,
+        ),
+      }
+
     case 'setFeeRate': {
       const rate = Math.min(1, Math.max(0, action.rate))
       return {
@@ -1091,11 +1133,16 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         liveStates: state.liveStates.map((l) => {
-          if (!l.shareLocation || !l.orderId) return l
+          // A device reporting its own GPS is the truth; do not move it
+          if (!l.shareLocation || !l.orderId || l.source === 'gps') return l
           const order = state.orders.find((o) => o.id === l.orderId)
           if (!order) return l
-          const target = l.status === 'at_pickup' ? order.pickup : order.dropoff
-          return { ...l, point: stepToward(l.point, target, 0.12), updatedAt: now() }
+          const leg = state.routes[l.orderId]
+          if (!leg) return l
+          // Roughly 25 km/h over a five-second tick — the marker follows
+          // the road geometry rather than cutting across the map
+          const moved = advanceAlong(leg.points, l.routeIndex ?? 0, l.point, 0.035)
+          return { ...l, point: moved.point, routeIndex: moved.index, updatedAt: now() }
         }),
       }
     }

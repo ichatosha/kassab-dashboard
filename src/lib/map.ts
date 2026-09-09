@@ -65,6 +65,35 @@ export const tileMapProvider: MapProvider = {
 export const MIN_ZOOM = 11
 export const MAX_ZOOM = 17
 
+/** The closest zoom at which every point still fits the viewport. A trip
+ *  the reader cannot see is not tracking, so the map frames the road
+ *  rather than sitting at a fixed city zoom. */
+export function zoomToFit(
+  points: GeoPoint[],
+  width: number,
+  height: number,
+  provider: MapProvider,
+  padding = 56,
+): number {
+  if (points.length < 2 || width <= 0 || height <= 0) return 13
+  const usableW = Math.max(32, width - padding * 2)
+  const usableH = Math.max(32, height - padding * 2)
+
+  for (let zoom = MAX_ZOOM; zoom > MIN_ZOOM; zoom--) {
+    let minX = Infinity; let maxX = -Infinity
+    let minY = Infinity; let maxY = -Infinity
+    for (const point of points) {
+      const { x, y } = provider.toWorldPixels(point, zoom)
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    if (maxX - minX <= usableW && maxY - minY <= usableH) return zoom
+  }
+  return MIN_ZOOM
+}
+
 /** Kilometres between two points — used for ETA and distance to customer */
 export function distanceKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371

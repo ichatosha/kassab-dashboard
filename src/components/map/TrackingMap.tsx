@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import type { DeliveryOrder, DriverLiveState, GeoPoint } from '../../types/domain'
-import { MAX_ZOOM, MIN_ZOOM, TILE_SIZE, centreOf, tileMapProvider } from '../../lib/map'
+import { MAX_ZOOM, MIN_ZOOM, TILE_SIZE, centreOf, tileMapProvider, zoomToFit } from '../../lib/map'
 import type { MapProvider } from '../../lib/map'
+import { splitAt } from '../../lib/route'
+import type { RouteLeg } from '../../lib/route'
 import { useI18n } from '../../i18n'
 
 // ── Tracking map ──────────────────────────────────────────────────────
@@ -25,10 +27,13 @@ const COLS = 5
 const ROWS = 4
 
 export function TrackingMap({
-  states, orders, selectedId, onSelect, city, provider = tileMapProvider, className = '',
+  states, orders, routes, selectedId, onSelect, city,
+  provider = tileMapProvider, className = '',
 }: {
   states: DriverLiveState[]
   orders: DeliveryOrder[]
+  /** Road geometry per delivery id, so a trip follows real streets */
+  routes?: Record<string, RouteLeg>
   selectedId?: string
   onSelect: (driverId: string) => void
   city: string
@@ -37,6 +42,21 @@ export function TrackingMap({
 }) {
   const { t } = useI18n()
   const [zoomChoice, setZoomChoice] = useState<number | null>(null)
+  const frame = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState({ width: 0, height: 0 })
+
+  // Measured once and on resize, and used for one thing only: picking a
+  // zoom that fits the trip. Marker placement still needs no measurement.
+  useEffect(() => {
+    const element = frame.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setSize({ width, height })
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   const visible = useMemo(
     () => states.filter((s) => s.shareLocation && s.city === city),
@@ -49,15 +69,31 @@ export function TrackingMap({
     : undefined
 
   const base = provider.defaultView(city)
-  const zoom = zoomChoice ?? base.zoom
 
   // Centre on the selected trip when there is one, otherwise on the drivers
+  const leg = selectedOrder ? routes?.[selectedOrder.id] : undefined
+
+  // Frame the selected trip; fall back to the city view with none selected
+  const fitted = useMemo(() => {
+    if (!selected || !selectedOrder) return base.zoom
+    const span = leg?.points.length
+      ? [selected.point, ...leg.points]
+      : [selected.point, selectedOrder.pickup, selectedOrder.dropoff]
+    return zoomToFit(span, size.width, size.height, provider)
+  }, [selected, selectedOrder, leg, size.width, size.height, provider, base.zoom])
+
+  const zoom = zoomChoice ?? fitted
+
   const centre: GeoPoint = useMemo(() => {
     if (selected && selectedOrder) {
-      return centreOf([selected.point, selectedOrder.pickup, selectedOrder.dropoff]) ?? base.centre
+      // Frame the whole road, so a long trip is not half off-screen
+      const span = leg?.points.length
+        ? [selected.point, ...leg.points]
+        : [selected.point, selectedOrder.pickup, selectedOrder.dropoff]
+      return centreOf(span) ?? base.centre
     }
     return centreOf(visible.map((s) => s.point)) ?? base.centre
-  }, [selected, selectedOrder, visible, base.centre])
+  }, [selected, selectedOrder, leg, visible, base.centre])
 
   const centrePx = provider.toWorldPixels(centre, zoom)
 
@@ -70,6 +106,24 @@ export function TrackingMap({
     const { dx, dy } = offset(point)
     return { left: `calc(50% + ${dx}px)`, top: `calc(50% + ${dy}px)` }
   }
+
+  // The road, split at the driver: behind them, and still to come
+  const road = useMemo(() => {
+    if (!selected || !selectedOrder) return { travelled: [], remaining: [] }
+    const points = leg?.points?.length
+      ? leg.points
+      : [selectedOrder.pickup, selectedOrder.dropoff]
+    return splitAt(points, selected.routeIndex ?? 0, selected.point)
+  }, [selected, selectedOrder, leg])
+
+  const fullRoad = [...road.travelled, ...road.remaining.slice(1)]
+
+  // Pixel path, measured from the centre of the container
+  const polyline = (points: GeoPoint[]) =>
+    points.map((point) => {
+      const { dx, dy } = offset(point)
+      return `${dx},${dy}`
+    }).join(' ')
 
   const tiles = useMemo(() => {
     const centreTileX = Math.floor(centrePx.x / TILE_SIZE)
@@ -95,7 +149,10 @@ export function TrackingMap({
   }, [centrePx.x, centrePx.y, zoom, provider])
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-ink-200 bg-ink-100 ${className}`}>
+    <div
+      ref={frame}
+      className={`relative overflow-hidden rounded-xl border border-ink-200 bg-ink-100 ${className}`}
+    >
       {/* Tile layer. Dark mode darkens the imagery so markers stay readable */}
       <div
         aria-hidden
@@ -119,30 +176,43 @@ export function TrackingMap({
         ))}
       </div>
 
-      {/* The selected trip: branch, customer, and the line between them */}
+      {/* The selected trip, drawn along the streets the driver is using:
+          solid for the road already covered, dashed for what is left. */}
       {selected && selectedOrder && (
         <>
           <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
-            <line
-              x1={`calc(50% + ${offset(selectedOrder.pickup).dx}px)`}
-              y1={`calc(50% + ${offset(selectedOrder.pickup).dy}px)`}
-              x2={`calc(50% + ${offset(selected.point).dx}px)`}
-              y2={`calc(50% + ${offset(selected.point).dy}px)`}
-              className="stroke-ink-700"
-              strokeWidth="3"
-              strokeLinecap="round"
-              opacity="0.55"
-            />
-            <line
-              x1={`calc(50% + ${offset(selected.point).dx}px)`}
-              y1={`calc(50% + ${offset(selected.point).dy}px)`}
-              x2={`calc(50% + ${offset(selectedOrder.dropoff).dx}px)`}
-              y2={`calc(50% + ${offset(selectedOrder.dropoff).dy}px)`}
-              className="stroke-brand-600"
-              strokeWidth="3"
-              strokeDasharray="6 5"
-              strokeLinecap="round"
-            />
+            {/* Coordinates are measured from the centre of the map, the
+                same origin the markers use, so nothing needs measuring */}
+            <g style={{ transform: 'translate(50%, 50%)', transformBox: 'view-box' }}>
+              {/* A casing under the road keeps it readable over any tile */}
+              <polyline
+                points={polyline(fullRoad)}
+                fill="none"
+                className="stroke-white dark:stroke-night-950"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.75"
+              />
+              <polyline
+                points={polyline(road.travelled)}
+                fill="none"
+                className="stroke-ink-700"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.6"
+              />
+              <polyline
+                points={polyline(road.remaining)}
+                fill="none"
+                className="stroke-brand-600"
+                strokeWidth="4"
+                strokeDasharray="7 6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
           </svg>
           <Pin style={at(selectedOrder.pickup)} label={t('track.pickup')} tone="ink" />
           <Pin style={at(selectedOrder.dropoff)} label={t('track.dropoff')} tone="brand" />
@@ -200,6 +270,14 @@ export function TrackingMap({
           <Minus className="h-4 w-4" aria-hidden />
         </button>
       </div>
+
+      {/* Say so when no router answered, rather than passing a straight
+          line off as the road the driver is taking */}
+      {selected && selectedOrder && leg?.approximate && (
+        <p className="absolute bottom-0 start-0 z-20 max-w-[60%] bg-surface/85 px-1.5 py-0.5 text-[10px] leading-tight text-ink-500">
+          {t('track.roadApprox')}
+        </p>
+      )}
 
       <a
         href={provider.attributionHref}

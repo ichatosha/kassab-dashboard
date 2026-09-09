@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  CheckCircle2, MapPin, Navigation, Package, Phone, Radio, ShieldCheck,
+  CheckCircle2, MapPin, Navigation, Package, Phone, Radio, Satellite, ShieldCheck,
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { useAppState, useLiveTracking } from '../../store/AppState'
 import { nextOrderStatus } from '../../lib/status'
+import { useOrderRoute } from '../../hooks/useRoute'
+import { useDeviceLocation } from '../../hooks/useDeviceLocation'
 import { useAuth } from '../../store/auth'
 import { useDriverScope } from '../../hooks/usePortalScope'
 import { useLookups } from '../../hooks/useLookups'
@@ -29,7 +31,7 @@ import type { DeliveryOrderStatus } from '../../types/domain'
 export function DriverWorkPage() {
   const { t, locale } = useI18n()
   const { user } = useAuth()
-  const { orders, liveStates, dispatch } = useAppState()
+  const { orders, liveStates, routes, dispatch } = useAppState()
 
   // Positions only need to move while this screen is open
   useLiveTracking()
@@ -49,6 +51,10 @@ export function DriverWorkPage() {
   const earnedToday = myOrders
     .filter((o) => o.status === 'delivered')
     .reduce((s, o) => s + o.amount, 0)
+
+  // The streets of the current run, and the phone's own GPS
+  useOrderRoute(current)
+  const gps = useDeviceLocation(user?.driverId)
 
   if (!driver) return <EmptyState title={t('notFound.title')} />
 
@@ -126,6 +132,49 @@ export function DriverWorkPage() {
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-400" aria-hidden />
             {t('work.locationPolicy')}
           </p>
+
+          {/* Real GPS from this device. Off by default: the browser asks
+              for permission the moment it is switched on, and the reading
+              never leaves this browser. */}
+          {live.shareLocation && (
+            <div className="mt-3 rounded-lg border border-ink-100 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-ink-900">
+                    <Satellite className="h-4 w-4 text-ink-400" aria-hidden />
+                    {t('work.gpsTitle')}
+                  </p>
+                  <p className="mt-0.5 text-xs text-ink-500">
+                    {gps.status === 'live' && gps.accuracyM !== null
+                      ? t('work.gpsLive').replace('{m}', String(gps.accuracyM))
+                      : gps.status === 'requesting' ? t('work.gpsRequesting')
+                      : gps.status === 'denied' ? t('work.gpsDenied')
+                      : gps.status === 'unavailable' ? t('work.gpsUnavailable')
+                      : gps.status === 'error' ? t('work.gpsError')
+                      : t('work.gpsHint')}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={gps.active ? 'secondary' : 'primary'}
+                  disabled={gps.status === 'unavailable'}
+                  onClick={() => {
+                    if (gps.active) {
+                      gps.stop()
+                      toast(t('work.gpsStopped'), 'info')
+                    } else {
+                      gps.start()
+                    }
+                  }}
+                >
+                  {gps.active ? t('work.gpsStop') : t('work.gpsStart')}
+                </Button>
+              </div>
+              {live.source === 'gps' && (
+                <p className="mt-2 text-[11px] text-emerald-700">{t('work.gpsInUse')}</p>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 
@@ -225,6 +274,7 @@ export function DriverWorkPage() {
             <TrackingMap
               states={[live]}
               orders={orders}
+              routes={routes}
               city={live.city}
               selectedId={live.driverId}
               onSelect={() => {}}

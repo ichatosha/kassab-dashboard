@@ -16,6 +16,7 @@ import { TrackingMap } from '../../components/map/TrackingMap'
 import { formatMoney, formatNumber, formatPercent, formatRelative } from '../../lib/format'
 import { cityName } from '../../lib/geo'
 import { distanceKm } from '../../lib/map'
+import { useOrderRoute } from '../../hooks/useRoute'
 import type { DriverLiveState } from '../../types/domain'
 
 // ── Workforce operations centre ───────────────────────────────────────
@@ -34,7 +35,7 @@ export function WorkforceTrackingView({
   showCompany?: boolean
 }) {
   const { t, locale } = useI18n()
-  const { orders, drivers } = useAppState()
+  const { orders, drivers, routes } = useAppState()
 
   // Positions only need to move while this screen is open
   useLiveTracking()
@@ -65,6 +66,8 @@ export function WorkforceTrackingView({
   const selected = states.find((s) => s.driverId === selectedId)
   const selectedDriver = selected ? driverById.get(selected.driverId) : undefined
   const selectedOrder = selected?.orderId ? orders.find((o) => o.id === selected.orderId) : undefined
+  // The road this driver is actually using, not the line between two dots
+  useOrderRoute(selectedOrder)
 
   // Busy drivers first — those are the ones an operator acts on
   const ordered = useMemo(
@@ -133,6 +136,7 @@ export function WorkforceTrackingView({
           <TrackingMap
             states={states}
             orders={orders}
+            routes={routes}
             city={city}
             selectedId={selectedId}
             onSelect={setSelectedId}

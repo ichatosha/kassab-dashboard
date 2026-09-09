@@ -491,6 +491,12 @@ export interface DriverLiveState {
   updatedAt: string
   shareLocation: boolean
   deliveriesToday: number
+  /** How far along the road geometry the driver has travelled */
+  routeIndex?: number
+  /** Set when the point came from the device's own GPS rather than the feed */
+  source?: 'gps' | 'feed'
+  /** GPS accuracy in metres, when the device reported one */
+  accuracyM?: number
 }
 
 export interface LocationPing {
