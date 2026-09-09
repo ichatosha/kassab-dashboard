@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Activity, PlugZap, RefreshCw } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Activity, PlugZap, RefreshCw, Settings2 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { useAppState } from '../../store/AppState'
@@ -25,10 +25,11 @@ import type { CompanyIntegration } from '../../types/domain'
 // feed means the workforce it placed goes dark on the map.
 export function AdminIntegrationsPage() {
   const { t, locale } = useI18n()
-  const { integrations, syncLogs, externalIdentities, dispatch } = useAppState()
+  const { companies, integrations, syncLogs, externalIdentities, dispatch } = useAppState()
   const { can } = useAuth()
   const { companyName } = useLookups()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [status, setStatus] = useState('all')
 
   const mayManage = can('integrations.manage')
@@ -44,6 +45,13 @@ export function AdminIntegrationsPage() {
     native: integrations.filter((i) => i.method === 'native' && i.status !== 'disconnected').length,
     orders: integrations.reduce((s, i) => s + i.ordersToday, 0),
   }), [integrations])
+
+  const unconnected = useMemo(
+    () => companies.filter(
+      (c) => !integrations.some((i) => i.companyId === c.id && i.status !== 'disconnected'),
+    ),
+    [companies, integrations],
+  )
 
   const linkedFor = (integrationId: string) =>
     externalIdentities.filter((x) => x.integrationId === integrationId && x.status === 'linked').length
@@ -114,6 +122,11 @@ export function AdminIntegrationsPage() {
               {t('int.sync')}
             </Button>
           )}
+          <Link to={`/admin/integrations/${i.companyId}`}>
+            <Button size="sm" icon={<Settings2 className="h-3.5 w-3.5" aria-hidden />}>
+              {t('int.setup')}
+            </Button>
+          </Link>
         </span>
       ),
     },
@@ -150,9 +163,36 @@ export function AdminIntegrationsPage() {
           columns={columns}
           rows={filtered}
           rowKey={(i) => i.id}
+          onRowClick={(i) => navigate(`/admin/integrations/${i.companyId}`)}
           stickyHeader
           emptyState={<EmptyState title={t('int.empty')} icon={<PlugZap className="h-6 w-6" />} />}
         />
+      </Card>
+
+      <Card title={t('int.needSetup')} className="mb-4">
+        <p className="mb-3 text-xs leading-relaxed text-ink-500">{t('int.needSetupHint')}</p>
+        {unconnected.length === 0 ? (
+          <EmptyState title={t('int.allConnected')} icon={<PlugZap className="h-6 w-6" />} />
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {unconnected.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between gap-3 rounded-lg border border-ink-100 px-3 py-2"
+              >
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <Avatar name={companyName(c.id)} size="sm" />
+                  <span className="truncate text-sm font-medium text-ink-900">{companyName(c.id)}</span>
+                </span>
+                <Link to={`/admin/integrations/${c.id}`} className="shrink-0">
+                  <Button size="sm" variant="secondary" icon={<Settings2 className="h-3.5 w-3.5" aria-hidden />}>
+                    {t('int.setup')}
+                  </Button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <Card

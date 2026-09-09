@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, BadgeCheck, MapPin, OctagonPause, Phone } from 'lucide-react'
+import {
+  ArrowLeft, ArrowRight, BadgeCheck, MapPin, OctagonPause, Phone, Settings2,
+} from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { TranslationKey } from '../i18n'
 import { useAppState } from '../store/AppState'
+import { useAuth } from '../store/auth'
 import { useLookups } from '../hooks/useLookups'
 import { useToast } from '../components/ui/Toast'
 import { Card } from '../components/ui/Card'
@@ -29,6 +32,7 @@ export function CompanyDetailsPage() {
   const { companies, requests, applications, drivers, invoices, dispatch } = useAppState()
   const { driverById, driverName, contactName } = useLookups()
   const { toast } = useToast()
+  const { can } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState('overview')
 
@@ -151,6 +155,14 @@ export function CompanyDetailsPage() {
               <span>{cityName(company.city, locale)}</span>
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+          {can('integrations.view') && (
+            <Link to={`/admin/integrations/${company.id}`}>
+              <Button variant="secondary" icon={<Settings2 className="h-4 w-4" aria-hidden />}>
+                {t('int.companyTitle')}
+              </Button>
+            </Link>
+          )}
           {company.status === 'active' ? (
             <Button
               variant="secondary"
@@ -174,6 +186,7 @@ export function CompanyDetailsPage() {
               {t('companies.approve')}
             </Button>
           )}
+          </div>
         </div>
       </Card>
 

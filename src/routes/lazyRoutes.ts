@@ -33,6 +33,7 @@ const load = {
   roles: () => import('../pages/admin/RolesPage').then((m) => ({ default: m.RolesPage })),
   auditLogs: () => import('../pages/admin/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
   adminIntegrations: () => import('../pages/admin/IntegrationsPage').then((m) => ({ default: m.AdminIntegrationsPage })),
+  adminIntegrationSetup: () => import('../pages/admin/IntegrationSetupPage').then((m) => ({ default: m.IntegrationSetupPage })),
   adminTracking: () => import('../pages/admin/WorkforceTrackingPage').then((m) => ({ default: m.AdminWorkforceTrackingPage })),
 
   companyOverview: () => import('../pages/company/CompanyOverviewPage').then((m) => ({ default: m.CompanyOverviewPage })),
@@ -149,6 +150,7 @@ export const EmployeeDetailPage = lazy(load.employeeDetail)
 export const RolesPage = lazy(load.roles)
 export const AuditLogPage = lazy(load.auditLogs)
 export const AdminIntegrationsPage = lazy(load.adminIntegrations)
+export const AdminIntegrationSetupPage = lazy(load.adminIntegrationSetup)
 export const AdminWorkforceTrackingPage = lazy(load.adminTracking)
 
 export const CompanyOverviewPage = lazy(load.companyOverview)

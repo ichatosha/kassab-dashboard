@@ -28,7 +28,7 @@ function newToken() {
 
 const mask = (token: string) => `${token.slice(0, 12)}${'•'.repeat(12)}${token.slice(-4)}`
 
-export function ApiAccessCard({ companyId }: { companyId: string }) {
+export function ApiAccessCard({ companyId, readOnly = false }: { companyId: string; readOnly?: boolean }) {
   const { t, locale } = useI18n()
   const { apiCredentials, dispatch } = useAppState()
   const { toast } = useToast()
@@ -66,7 +66,7 @@ export function ApiAccessCard({ companyId }: { companyId: string }) {
           title={t('api.noKey')}
           hint={t('api.noKeyHint')}
           icon={<KeyRound className="h-6 w-6" />}
-          action={<Button size="sm" onClick={issue}>{t('api.generate')}</Button>}
+          action={<Button size="sm" disabled={readOnly} onClick={issue}>{t('api.generate')}</Button>}
         />
       ) : (
         <>
@@ -158,6 +158,7 @@ export function ApiAccessCard({ companyId }: { companyId: string }) {
             <Button
               variant="secondary"
               size="sm"
+              disabled={readOnly}
               icon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
               onClick={issue}
             >
@@ -166,6 +167,7 @@ export function ApiAccessCard({ companyId }: { companyId: string }) {
             <Button
               variant="danger"
               size="sm"
+              disabled={readOnly}
               onClick={() => {
                 dispatch({ type: 'revokeApiKey', companyId })
                 setRevealed(null)

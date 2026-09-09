@@ -10,7 +10,8 @@ import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { Guard } from './components/layout/Guard'
 import {
-  AdminIntegrationsPage, AdminWorkforceTrackingPage, ApplicationsPage,
+  AdminIntegrationSetupPage, AdminIntegrationsPage, AdminWorkforceTrackingPage,
+  ApplicationsPage,
   AuditLogPage, CompaniesPage, CompanyApplicantsPage, CompanyBillingPage,
   CompanyDetailsPage, CompanyDriversPage, CompanyIntegrationsPage,
   CompanyOrdersPage, CompanyOverviewPage, CompanyProfilePage,
@@ -70,6 +71,7 @@ export default function App() {
 
                     <Route path="workforce-tracking" element={<Guard permission="workforce_tracking.view"><AdminWorkforceTrackingPage /></Guard>} />
                     <Route path="integrations" element={<Guard permission="integrations.view"><AdminIntegrationsPage /></Guard>} />
+                    <Route path="integrations/:companyId" element={<Guard permission="integrations.view"><AdminIntegrationSetupPage /></Guard>} />
 
                     <Route path="employees" element={<Guard permission="employees.view"><EmployeesPage /></Guard>} />
                     <Route path="employees/:id" element={<Guard permission="employees.view"><EmployeeDetailPage /></Guard>} />
