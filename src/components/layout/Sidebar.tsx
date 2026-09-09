@@ -5,6 +5,7 @@ import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
 import { Logo } from './Logo'
 import { BrandCredit } from '../shared/BrandCredit'
+import { prefetchRoute } from '../../routes/lazyRoutes'
 
 export interface NavItem {
   to: string
@@ -78,6 +79,8 @@ export function Sidebar({
                   to={item.to}
                   end={item.end}
                   onClick={onClose}
+                  onMouseEnter={() => prefetchRoute(item.to)}
+                  onFocus={() => prefetchRoute(item.to)}
                   className={({ isActive }) =>
                     `mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors duration-150 ${
                       isActive

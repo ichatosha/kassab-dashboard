@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import type { Portal } from '../../types/domain'
 import type { NavSection } from './Sidebar'
@@ -57,7 +57,13 @@ export function PortalLayout({
               <Button onClick={() => window.location.reload()}>{t('error.retry')}</Button>
             </div>
           )}
-          {status === 'ready' && <Outlet />}
+          {/* Only the page suspends while its chunk loads — the sidebar
+              and header stay exactly where they are. */}
+          {status === 'ready' && (
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          )}
         </main>
       </div>
     </div>

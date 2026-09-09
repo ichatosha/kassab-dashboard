@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
-import { useAppState } from '../../store/AppState'
+import { useAppState, useLiveTracking } from '../../store/AppState'
 import { useAuth } from '../../store/auth'
 import { useDriverScope } from '../../hooks/usePortalScope'
 import { useLookups } from '../../hooks/useLookups'
@@ -29,6 +29,9 @@ export function DriverWorkPage() {
   const { t, locale } = useI18n()
   const { user } = useAuth()
   const { orders, liveStates, dispatch } = useAppState()
+
+  // Positions only need to move while this screen is open
+  useLiveTracking()
   const { driver, employer } = useDriverScope()
   const { companyName } = useLookups()
   const { toast } = useToast()

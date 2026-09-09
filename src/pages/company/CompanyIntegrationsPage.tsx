@@ -16,6 +16,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { PageHeader } from '../../components/ui/misc'
 import { IntegrationStatusBadge } from '../../components/shared/StatusBadges'
 import { ConnectIntegrationModal } from '../../features/integrations/ConnectIntegrationModal'
+import { ApiAccessCard } from '../../features/integrations/ApiAccessCard'
 import { integrationProviders, providerById } from '../../mocks/integrations'
 import { formatNumber, formatRelative } from '../../lib/format'
 
@@ -116,6 +117,10 @@ export function CompanyIntegrationsPage() {
               {t('int.useKassab')}
             </Button>
           </Card>
+
+          <div className="lg:col-span-2">
+            <ApiAccessCard companyId={company.id} />
+          </div>
         </div>
       ) : (
         <>
@@ -269,6 +274,8 @@ export function CompanyIntegrationsPage() {
             </div>
 
             <div className="space-y-4">
+              <ApiAccessCard companyId={company.id} />
+
               {!isNative && (
                 <Card title={t('int.driverLinks')}>
                   <p className="mb-3 text-xs leading-relaxed text-ink-500">{t('int.driverLinksNote')}</p>

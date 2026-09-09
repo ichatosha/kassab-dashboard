@@ -1,5 +1,6 @@
 import type {
-  CompanyIntegration, IntegrationProviderInfo, IntegrationSyncLog,
+  ApiCredential, CompanyIntegration, IntegrationProviderInfo,
+  IntegrationSyncLog,
 } from '../types/domain'
 import { companyIdFor } from './companies'
 
@@ -96,3 +97,15 @@ export const mockSyncLogs: IntegrationSyncLog[] = [
   { id: 'log-10', integrationId: 'int-fresh', at: daysAgo(12), kind: 'connect', ok: true, message: 'Kassab tracking enabled', messageAr: 'تم تفعيل تتبع كساب' },
   { id: 'log-11', integrationId: 'int-shawerma', at: minsAgo(3), kind: 'sync', ok: true, ordersReceived: 2, message: 'Order created in Kassab', messageAr: 'تم إنشاء طلب داخل كساب' },
 ]
+
+// A company connecting its own system already holds a Kassab key; one on
+// Kassab tracking has no system to call in with, so it has none.
+export const mockApiCredentials: ApiCredential[] = mockIntegrations
+  .filter((i) => i.method !== 'native' && i.status !== 'disconnected')
+  .map((i, index) => ({
+    companyId: i.companyId,
+    token: `ksb_live_${'0123456789abcdef'.repeat(2)}${1000 + index}`,
+    createdAt: i.connectedAt ?? daysAgo(30),
+    lastUsedAt: minsAgo(2 + index * 5),
+    createdBy: 'Kassab Admin',
+  }))

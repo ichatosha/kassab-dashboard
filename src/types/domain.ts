@@ -496,3 +496,13 @@ export interface LocationPing {
   label: string
   labelAr: string
 }
+
+/** Credentials Kassab issues to a company so its system can call in */
+export interface ApiCredential {
+  companyId: string
+  /** Shown in full once at creation; masked everywhere after that */
+  token: string
+  createdAt: string
+  lastUsedAt?: string
+  createdBy: string
+}

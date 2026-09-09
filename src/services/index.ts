@@ -5,7 +5,8 @@
 // bottom of this file without touching a single UI component.
 
 import type {
-  Application, AppNotification, AuditLogEntry, Company, CompanyIntegration,
+  ApiCredential, Application, AppNotification, AuditLogEntry, Company,
+  CompanyIntegration,
   CompanyPayment, DeliveryOrder, Driver, DriverExternalIdentity,
   DriverLiveState, DriverPayout, Employee, IntegrationSyncLog, Invoice,
   OpportunityEngagement, Rating, RevenuePoint, SalaryRecord,
@@ -17,7 +18,7 @@ import { mockApplications } from '../mocks/applications'
 import { mockEngagement } from '../mocks/engagement'
 import { mockEmployees } from '../mocks/employees'
 import { mockAuditLog } from '../mocks/audit'
-import { mockIntegrations, mockSyncLogs } from '../mocks/integrations'
+import { mockApiCredentials, mockIntegrations, mockSyncLogs } from '../mocks/integrations'
 import { mockExternalIdentities, mockLiveStates, mockOrders } from '../mocks/operations'
 import { mockNotifications } from '../mocks/notifications'
 import { mockRatings } from '../mocks/ratings'
@@ -76,6 +77,7 @@ export interface IntegrationService {
   list(): Promise<CompanyIntegration[]>
   logs(): Promise<IntegrationSyncLog[]>
   identities(): Promise<DriverExternalIdentity[]>
+  credentials(): Promise<ApiCredential[]>
 }
 export interface OrderService {
   list(): Promise<DeliveryOrder[]>
@@ -105,6 +107,7 @@ export const integrationsService: IntegrationService = {
   list: () => simulate(mockIntegrations, 200),
   logs: () => simulate(mockSyncLogs, 200),
   identities: () => simulate(mockExternalIdentities, 200),
+  credentials: () => simulate(mockApiCredentials, 200),
 }
 export const ordersService: OrderService = { list: () => simulate(mockOrders, 240) }
 export const trackingService: TrackingService = { liveStates: () => simulate(mockLiveStates, 200) }

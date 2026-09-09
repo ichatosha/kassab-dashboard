@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import type { Dispatch, ReactNode } from 'react'
 import type {
-  Application, ApplicationStatus, AppNotification, AuditAction, AuditLogEntry,
+  ApiCredential, Application, ApplicationStatus, AppNotification, AuditAction,
+  AuditLogEntry,
   Company, CompanyIntegration, CompanyPayment, DeliveryOrder,
   DeliveryOrderStatus, Driver, DriverExternalIdentity, DriverLiveState,
   DriverPayout, DriverStatus, DriverWorkStatus, Employee, EmployeeRole,
@@ -40,6 +41,7 @@ interface AppData {
   externalIdentities: DriverExternalIdentity[]
   orders: DeliveryOrder[]
   liveStates: DriverLiveState[]
+  apiCredentials: ApiCredential[]
 }
 
 interface AppState extends AppData {
@@ -149,6 +151,8 @@ type Action =
   | { type: 'setDriverWorkStatus'; driverId: string; status: DriverWorkStatus }
   | { type: 'setLocationSharing'; driverId: string; sharing: boolean }
   | { type: 'moveDrivers' }
+  | { type: 'issueApiKey'; companyId: string; token: string }
+  | { type: 'revokeApiKey'; companyId: string }
   | { type: 'loadError' }
   | { type: 'setApplicationStatus'; applicationId: string; status: ApplicationStatus }
   | { type: 'submitApplication'; input: NewApplicationInput }
@@ -172,7 +176,7 @@ const initialState: AppState = {
   payments: [], payouts: [], invoices: [], revenueSeries: [], transactions: [],
   notifications: [], ratings: [], engagement: [],
   employees: [], auditLog: [], integrations: [], syncLogs: [],
-  externalIdentities: [], orders: [], liveStates: [],
+  externalIdentities: [], orders: [], liveStates: [], apiCredentials: [],
   actor: null,
   viewedOpportunities: [], likedOpportunities: [], savedOpportunities: [],
 }
@@ -864,6 +868,41 @@ function reducer(state: AppState, action: Action): AppState {
       }
     }
 
+    // Credentials Kassab issues to a company so its system can call in.
+    // A new key always replaces the old one, so a leaked key dies the
+    // moment a replacement is issued.
+    case 'issueApiKey': {
+      const credential: ApiCredential = {
+        companyId: action.companyId,
+        token: action.token,
+        createdAt: now(),
+        createdBy: state.actor?.name ?? 'Company owner',
+      }
+      return {
+        ...state,
+        apiCredentials: [
+          credential,
+          ...state.apiCredentials.filter((c) => c.companyId !== action.companyId),
+        ],
+        auditLog: record(
+          state, 'integration.connected', 'api_key', action.companyId,
+          companyLabel(state, action.companyId), companyLabelAr(state, action.companyId),
+          'api key issued',
+        ),
+      }
+    }
+
+    case 'revokeApiKey':
+      return {
+        ...state,
+        apiCredentials: state.apiCredentials.filter((c) => c.companyId !== action.companyId),
+        auditLog: record(
+          state, 'integration.disconnected', 'api_key', action.companyId,
+          companyLabel(state, action.companyId), companyLabelAr(state, action.companyId),
+          'api key revoked',
+        ),
+      }
+
     case 'setDriverWorkStatus':
       return {
         ...state,
@@ -940,7 +979,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           drivers, companies, requests, applications, salaries, payments,
           payouts, invoices, revenueSeries, transactions, notifications, ratings,
           engagement, employees, auditLog, integrations, syncLogs,
-          externalIdentities, orders, liveStates,
+          externalIdentities, orders, liveStates, apiCredentials,
         ] = await Promise.all([
           driversService.list(),
           companiesService.list(),
@@ -962,6 +1001,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           integrationsService.identities(),
           ordersService.list(),
           trackingService.liveStates(),
+          integrationsService.credentials(),
         ])
         if (!cancelled) {
           dispatch({
@@ -970,7 +1010,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
               drivers, companies, requests, applications, salaries, payments,
               payouts, invoices, revenueSeries, transactions, notifications,
               ratings, engagement, employees, auditLog, integrations, syncLogs,
-              externalIdentities, orders, liveStates,
+              externalIdentities, orders, liveStates, apiCredentials,
             },
           })
         }
@@ -984,24 +1024,32 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // The operations map is fed through the realtime abstraction rather than
-  // a timer inside a component, so a real socket can take this over later.
+  const value = useMemo(() => ({ ...state, dispatch }), [state])
+  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
+}
+
+/**
+ * Subscribe to the live driver feed. Only the screens that show moving
+ * drivers call this: a store update re-renders every consumer, so a ticker
+ * running app-wide would make unrelated pages redraw several times a
+ * minute — which is exactly what made navigation feel sluggish.
+ */
+export function useLiveTracking(enabled = true) {
+  const { status, dispatch } = useAppState()
+
   useEffect(() => {
-    if (state.status !== 'ready') return
+    if (!enabled || status !== 'ready') return
     const unsubscribe = realtime.subscribe('driver.location', () => {
       dispatch({ type: 'moveDrivers' })
     })
     const timer = window.setInterval(() => {
       realtime.publish('driver.location', { at: Date.now() })
-    }, 4000)
+    }, 5000)
     return () => {
       unsubscribe()
       window.clearInterval(timer)
     }
-  }, [state.status])
-
-  const value = useMemo(() => ({ ...state, dispatch }), [state])
-  return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>
+  }, [enabled, status, dispatch])
 }
 
 export function useAppState(): AppStateContextValue {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bike, MapPin, Radio, Users } from 'lucide-react'
 import { useI18n } from '../../i18n'
 import type { TranslationKey } from '../../i18n'
-import { useAppState } from '../../store/AppState'
+import { useAppState, useLiveTracking } from '../../store/AppState'
 import { useLookups } from '../../hooks/useLookups'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
@@ -35,6 +35,9 @@ export function WorkforceTrackingView({
 }) {
   const { t, locale } = useI18n()
   const { orders, drivers } = useAppState()
+
+  // Positions only need to move while this screen is open
+  useLiveTracking()
   const { driverById, driverName, companyName } = useLookups()
 
   const cities = useMemo(

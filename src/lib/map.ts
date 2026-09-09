@@ -2,53 +2,70 @@ import type { GeoPoint } from '../types/domain'
 import { cityCentre } from './geo'
 
 // ── Map abstraction ───────────────────────────────────────────────────
-// The UI never talks to a map vendor. It asks a MapProvider to turn
-// coordinates into positions inside the view, so Google Maps, Mapbox or
-// a tile server can replace this projection later without touching a
-// single component.
+// The UI never talks to a map vendor. It asks a MapProvider for tiles and
+// for the pixel position of a coordinate, so Google Maps or Mapbox can
+// replace this without touching a component. The default provider serves
+// standard Web Mercator raster tiles, which is what every vendor speaks.
 
-export interface MapViewport {
+export const TILE_SIZE = 256
+
+export interface MapView {
   centre: GeoPoint
-  /** Half-height of the view in degrees of latitude */
-  spanLat: number
-  /** Half-width of the view in degrees of longitude */
-  spanLng: number
+  zoom: number
 }
 
 export interface MapProvider {
   id: string
-  /** Coordinates to a 0..1 position inside the viewport */
-  project(point: GeoPoint, viewport: MapViewport): { x: number; y: number }
-  /** The reverse, for future drag-to-place interactions */
-  unproject(pos: { x: number; y: number }, viewport: MapViewport): GeoPoint
-  viewportFor(city: string, zoom?: number): MapViewport
+  /** Attribution the provider requires to be shown */
+  attribution: string
+  attributionHref: string
+  /** Tile image for a slot in the Web Mercator grid */
+  tileUrl(zoom: number, x: number, y: number): string
+  /** Coordinate to absolute pixel position at this zoom */
+  toWorldPixels(point: GeoPoint, zoom: number): { x: number; y: number }
+  defaultView(city: string): MapView
 }
 
-// An equirectangular projection is accurate enough at city scale and needs
-// no network, which is exactly what the demo requires.
-export const localMapProvider: MapProvider = {
-  id: 'kassab-local',
+// The tile server is configurable: point VITE_MAP_TILE_URL at a paid
+// provider (or a Google/Mapbox raster endpoint) for production traffic.
+const TILE_TEMPLATE =
+  import.meta.env.VITE_MAP_TILE_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+const ATTRIBUTION = import.meta.env.VITE_MAP_ATTRIBUTION ?? '© OpenStreetMap contributors'
+const ATTRIBUTION_HREF =
+  import.meta.env.VITE_MAP_ATTRIBUTION_HREF ?? 'https://www.openstreetmap.org/copyright'
 
-  project(point, viewport) {
-    const x = (point.lng - (viewport.centre.lng - viewport.spanLng)) / (viewport.spanLng * 2)
-    const y = ((viewport.centre.lat + viewport.spanLat) - point.lat) / (viewport.spanLat * 2)
-    return { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) }
+export const tileMapProvider: MapProvider = {
+  id: 'raster-tiles',
+  attribution: ATTRIBUTION,
+  attributionHref: ATTRIBUTION_HREF,
+
+  tileUrl(zoom, x, y) {
+    return TILE_TEMPLATE
+      .replace('{z}', String(zoom))
+      .replace('{x}', String(x))
+      .replace('{y}', String(y))
   },
 
-  unproject(pos, viewport) {
-    return {
-      lng: viewport.centre.lng - viewport.spanLng + pos.x * viewport.spanLng * 2,
-      lat: viewport.centre.lat + viewport.spanLat - pos.y * viewport.spanLat * 2,
-    }
+  // Standard Web Mercator — the same maths every tile provider uses, so
+  // markers line up whichever tile server is configured.
+  toWorldPixels(point, zoom) {
+    const scale = TILE_SIZE * 2 ** zoom
+    const x = ((point.lng + 180) / 360) * scale
+    const latRad = (point.lat * Math.PI) / 180
+    const y =
+      (0.5 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / (2 * Math.PI)) * scale
+    return { x, y }
   },
 
-  viewportFor(city, zoom = 1) {
-    const centre = cityCentre(city)
-    return { centre, spanLat: 0.045 / zoom, spanLng: 0.055 / zoom }
+  defaultView(city) {
+    return { centre: cityCentre(city), zoom: 13 }
   },
 }
 
-/** Metres between two points — used for ETA and "distance to customer" */
+export const MIN_ZOOM = 11
+export const MAX_ZOOM = 17
+
+/** Kilometres between two points — used for ETA and distance to customer */
 export function distanceKm(a: GeoPoint, b: GeoPoint): number {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -59,10 +76,19 @@ export function distanceKm(a: GeoPoint, b: GeoPoint): number {
   return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-/** One step of a driver moving toward a destination, for the live demo feed */
+/** One step of a driver moving toward a destination, for the live feed */
 export function stepToward(from: GeoPoint, to: GeoPoint, fraction: number): GeoPoint {
   return {
     lat: from.lat + (to.lat - from.lat) * fraction,
     lng: from.lng + (to.lng - from.lng) * fraction,
+  }
+}
+
+/** Centre of a set of points, so a whole trip fits in view */
+export function centreOf(points: GeoPoint[]): GeoPoint | null {
+  if (points.length === 0) return null
+  return {
+    lat: points.reduce((s, p) => s + p.lat, 0) / points.length,
+    lng: points.reduce((s, p) => s + p.lng, 0) / points.length,
   }
 }
